@@ -1,0 +1,22 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.hydropulse.tracker'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.hydropulse.tracker"
+        minSdk 24
+        targetSdk 34
+        versionCode 3
+        versionName "1.3"
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+    }
+}

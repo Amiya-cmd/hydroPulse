@@ -1,0 +1,2870 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0284c7" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>HydroPulse — Smart Weather & Body Water Tracker for Android</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            hydro: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overscroll-behavior-y: contain;
+    }
+    .gpu-smooth {
+      transform: translateZ(0);
+      will-change: transform, opacity;
+      backface-visibility: hidden;
+    }
+    @keyframes floatDrop {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50% { transform: translateY(-6px) scale(1.05); }
+    }
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0.92) translateY(8px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes slideStep {
+      0% { opacity: 0; transform: translateX(18px) scale(0.98); }
+      100% { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes pulseRing {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.55); }
+      70% { transform: scale(1); box-shadow: 0 0 0 12px rgba(14, 165, 233, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+    }
+    .animate-float {
+      animation: floatDrop 2.6s ease-in-out infinite;
+    }
+    .animate-pop {
+      animation: popIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .animate-step {
+      animation: slideStep 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .pulse-indicator {
+      animation: pulseRing 2s infinite;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.35);
+      border-radius: 9999px;
+    }
+    /* Block & hide injected Netlify floating drawer / badge / deploy preview overlay */
+    iframe[src*="netlify"],
+    iframe[title*="Netlify"],
+    div[id*="netlify"],
+    div[class*="netlify"],
+    div[data-netlify-deploy-notifications],
+    netlify-drawer,
+    script[src*="netlify-cdp-loader"] ~ div {
+      display: none !important;
+      visibility: hidden !important;
+       opacity: 0 !important;
+      pointer-events: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300 selection:bg-sky-500 selection:text-white">
+
+  <!-- ===================================================================== -->
+  <!-- 1. APP LAUNCH LOGO SPLASH SCREEN (Shows for 1.8 Seconds on Every Open) -->
+  <!-- ===================================================================== -->
+  <div id="appSplashScreen" class="fixed inset-0 z-[70] bg-gradient-to-br from-sky-600 via-blue-700 to-slate-950 flex flex-col items-center justify-center p-6 text-white transition-all duration-500 gpu-smooth">
+    <div class="relative flex items-center justify-center mb-6">
+      <div class="absolute w-28 h-28 rounded-full bg-sky-400/25 animate-ping"></div>
+      <div class="w-24 h-24 rounded-3xl bg-white/15 backdrop-blur-md border border-white/30 shadow-2xl flex items-center justify-center animate-float">
+        <svg class="w-14 h-14 text-sky-200 drop-shadow" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+        </svg>
+      </div>
+    </div>
+    <h1 class="text-3xl font-extrabold tracking-tight text-white">HydroPulse</h1>
+    <p class="text-xs font-medium text-sky-200/90 mt-1.5 tracking-wide uppercase">Smart Weather & Body Hydration</p>
+    <div class="mt-8 w-36 h-1.5 rounded-full bg-white/20 overflow-hidden">
+      <div id="splashProgressBar" class="h-full bg-sky-300 rounded-full transition-all duration-1000 w-0"></div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 2. FIRST-TIME 5-STEP ONBOARDING FLOW (Every step has "Skip to Next")   -->
+  <!-- ===================================================================== -->
+  <div id="onboardingOverlay" class="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative my-auto gpu-smooth">
+
+      <!-- Top Progress Dots & Skip to Next Button -->
+      <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center gap-1.5" id="onboardProgressDots">
+          <span class="w-6 h-1.5 rounded-full bg-sky-500 transition-all"></span>
+          <span class="w-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 transition-all"></span>
+          <span class="w-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 transition-all"></span>
+          <span class="w-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 transition-all"></span>
+          <span class="w-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 transition-all"></span>
+        </div>
+        <button id="onboardTopSkipBtn" type="button" class="px-3 py-1 rounded-full text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          Skip to Next →
+        </button>
+      </div>
+
+      <!-- STEP 1: Greeting Message including App Name -->
+      <div id="onboardStep1" class="onboard-step space-y-5 text-center py-4 animate-step">
+        <div class="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center text-white shadow-xl shadow-sky-500/30 animate-float">
+          <svg class="w-11 h-11" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+          </svg>
+        </div>
+        <div class="space-y-2">
+          <span class="inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-sky-500/15 text-sky-600 dark:text-sky-400">
+            Welcome Aboard
+          </span>
+          <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white">
+            Hello & Welcome to <span class="text-sky-600 dark:text-sky-400">HydroPulse</span>! 👋
+          </h2>
+          <p class="text-sm text-slate-600 dark:text-slate-300 max-w-xs mx-auto">
+            We're excited to help you stay refreshed, energized, and on top of your daily hydration goals.
+          </p>
+        </div>
+        <div class="pt-3 flex flex-col gap-2">
+          <button id="onboardNext1Btn" type="button" class="w-full py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold text-sm shadow-lg shadow-sky-600/25 transition">
+            Continue →
+          </button>
+          <button type="button" data-skip-step="1" class="onboard-skip-btn w-full py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition">
+            Skip to Next Page
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Small Description of App Purpose & Benefits (2 - 3 Lines) -->
+      <div id="onboardStep2" class="onboard-step space-y-5 hidden py-2 animate-step">
+        <div class="w-14 h-14 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl">
+          ✨
+        </div>
+        <div class="space-y-2">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Purpose & Benefits</span>
+          <h2 class="text-xl font-extrabold text-slate-900 dark:text-white">Why Use HydroPulse?</h2>
+          <!-- Strictly 2-3 concise lines explaining purpose and benefits -->
+          <p class="text-sm leading-relaxed text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/70 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/70">
+            HydroPulse calculates your exact daily water target from your body metrics and live local weather, dividing it into easy sips throughout your waking hours. Staying consistently hydrated boosts energy, sharpens focus, prevents fatigue, and builds a lasting healthy habit.
+          </p>
+        </div>
+        <div class="pt-2 flex items-center gap-2">
+          <button type="button" data-back-step="2" class="onboard-back-btn px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300">
+            ← Back
+          </button>
+          <button id="onboardNext2Btn" type="button" class="flex-1 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold text-sm shadow-lg shadow-sky-600/25 transition">
+            Next: Body Profile →
+          </button>
+        </div>
+        <button type="button" data-skip-step="2" class="onboard-skip-btn w-full py-1.5 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition">
+          Skip to Next Page
+        </button>
+      </div>
+
+      <!-- STEP 3: Age, Height & Weight + 1-Sentence Reason at Bottom -->
+      <div id="onboardStep3" class="onboard-step space-y-4 hidden py-1 animate-step">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">Step 3 of 5 • Body Profile</span>
+          <h2 class="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5">Enter Your Body Metrics</h2>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2.5">
+          <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <label for="onboardAge" class="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Age (Yrs)</label>
+            <input id="onboardAge" type="number" min="5" max="110" value="25" class="w-full text-lg font-extrabold bg-transparent text-slate-900 dark:text-white focus:outline-none border-b border-slate-300 dark:border-slate-600 pb-0.5" />
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <label for="onboardHeight" class="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Height (cm)</label>
+            <input id="onboardHeight" type="number" min="80" max="240" value="170" class="w-full text-lg font-extrabold bg-transparent text-slate-900 dark:text-white focus:outline-none border-b border-slate-300 dark:border-slate-600 pb-0.5" />
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <label for="onboardWeight" class="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Weight (kg)</label>
+            <input id="onboardWeight" type="number" min="20" max="250" value="65" class="w-full text-lg font-extrabold bg-transparent text-slate-900 dark:text-white focus:outline-none border-b border-slate-300 dark:border-slate-600 pb-0.5" />
+          </div>
+        </div>
+
+        <div class="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/25 flex items-center justify-between">
+          <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">Calculated Baseline Requirement:</span>
+          <span class="text-sm font-extrabold text-sky-600 dark:text-sky-400" id="onboardBasePreviewText">2,620 ml / day</span>
+        </div>
+
+        <!-- Strictly 1 sentence at the bottom explaining why this info is necessary -->
+        <p class="text-xs text-slate-500 dark:text-slate-400 italic text-center px-2">
+          Your age, height, and weight are necessary to accurately calculate your body's baseline daily water consumption limit.
+        </p>
+
+        <div class="pt-1 flex items-center gap-2">
+          <button type="button" data-back-step="3" class="onboard-back-btn px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300">
+            ← Back
+          </button>
+          <button id="onboardNext3Btn" type="button" class="flex-1 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold text-sm shadow-lg shadow-sky-600/25 transition">
+            Save & Next →
+          </button>
+        </div>
+        <button type="button" data-skip-step="3" class="onboard-skip-btn w-full py-1.5 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition">
+          Skip to Next Page
+        </button>
+      </div>
+
+      <!-- STEP 4: Tracker Timing, 15/30/60 Min Reminder Options, Push Notification Toggle & Background Permission -->
+      <div id="onboardStep4" class="onboard-step space-y-3.5 hidden py-1 animate-step">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">Step 4 of 5 • Schedule & Reminders</span>
+          <h2 class="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5">Tracker Timing & Alerts</h2>
+        </div>
+
+        <!-- Wake & Sleep Time Pickers -->
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-slate-50 dark:bg-slate-800 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <label for="onboardWakeTime" class="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">☀️ Start Time (Wake)</label>
+            <input id="onboardWakeTime" type="time" value="07:00" class="w-full text-sm font-extrabold bg-transparent text-slate-900 dark:text-white mt-0.5 focus:outline-none" />
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-800 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <label for="onboardSleepTime" class="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">🌙 End Time (Sleep)</label>
+            <input id="onboardSleepTime" type="time" value="23:00" class="w-full text-sm font-extrabold bg-transparent text-slate-900 dark:text-white mt-0.5 focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- Reminder Interval Choice: 15 Minutes | 30 Minutes | 60 Minutes -->
+        <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Reminder Interval</span>
+            <span class="text-xs font-extrabold text-sky-600 dark:text-sky-400" id="onboardIntervalSipPreview">100 ml / 30 min</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" data-interval-mins="15" class="interval-choice-btn py-2 px-2 rounded-xl text-xs font-bold border transition">
+              15 Mins
+            </button>
+            <button type="button" data-interval-mins="30" class="interval-choice-btn py-2 px-2 rounded-xl text-xs font-bold border transition">
+              30 Mins
+            </button>
+            <button type="button" data-interval-mins="60" class="interval-choice-btn py-2 px-2 rounded-xl text-xs font-bold border transition">
+              60 Mins
+            </button>
+          </div>
+        </div>
+
+        <!-- Optional Push Notifications Toggle (Requires Phone Permission if Turned On) -->
+        <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <div class="text-xs font-bold text-slate-900 dark:text-white">🔔 Push Notifications</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">Requests phone notification permission when turned ON</div>
+            </div>
+            <button id="onboardPushToggleBtn" type="button" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 transition">
+              OFF
+            </button>
+          </div>
+
+          <!-- Background Usage Permission Option -->
+          <div class="pt-2 border-t border-slate-200/70 dark:border-slate-700/60 flex items-center justify-between gap-2">
+            <div>
+              <div class="text-xs font-bold text-slate-900 dark:text-white">⚡ Allow Background Usage</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">Keeps timer & alerts active when app is minimized or closed</div>
+            </div>
+            <button id="onboardBgPermBtn" type="button" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 transition">
+              Grant
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-1 flex items-center gap-2">
+          <button type="button" data-back-step="4" class="onboard-back-btn px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300">
+            ← Back
+          </button>
+          <button id="onboardNext4Btn" type="button" class="flex-1 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold text-sm shadow-lg shadow-sky-600/25 transition">
+            Save & Next →
+          </button>
+        </div>
+        <button type="button" data-skip-step="4" class="onboard-skip-btn w-full py-1.5 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition">
+          Skip to Next Page
+        </button>
+      </div>
+
+      <!-- STEP 5: Weather Information & Optional Location Permission Before GPS -->
+      <div id="onboardStep5" class="onboard-step space-y-4 hidden py-1 animate-step">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">Step 5 of 5 • Weather & Location (Optional)</span>
+          <h2 class="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5">Local Weather Hydration</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Grant location permission to fetch live local temperature, or skip and set weather manually anytime.
+          </p>
+        </div>
+
+        <!-- Optional GPS Permission Prompt Box -->
+        <div class="bg-sky-500/10 border border-sky-500/30 rounded-2xl p-3.5 space-y-2.5">
+          <div class="flex items-start gap-2.5">
+            <span class="text-xl">📍</span>
+            <div class="text-xs text-slate-700 dark:text-slate-200">
+              <div class="font-bold text-slate-900 dark:text-white">Location Permission (Optional)</div>
+              <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5" id="onboardLocStatusText">
+                HydroPulse asks your permission before accessing GPS to check local temperature and humidity.
+              </p>
+            </div>
+          </div>
+          <button id="onboardGrantLocationBtn" type="button" class="w-full py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white text-xs font-bold shadow-sm transition">
+            📍 Allow Location & Fetch Live Weather
+          </button>
+        </div>
+
+        <!-- Weather Preview Card -->
+        <div class="bg-slate-50 dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400" id="onboardWeatherCityLabel">Khardaha, West Bengal</div>
+            <div class="text-base font-extrabold text-slate-900 dark:text-white mt-0.5">
+              <span id="onboardWeatherTempLabel">31°C • Sunny</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">Total Daily Goal</div>
+            <div class="text-base font-extrabold text-sky-600 dark:text-sky-400" id="onboardFinalTargetPreview">3,050 ml</div>
+          </div>
+        </div>
+
+        <div class="pt-1 flex items-center gap-2">
+          <button type="button" data-back-step="5" class="onboard-back-btn px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300">
+            ← Back
+          </button>
+          <button id="onboardFinishBtn" type="button" class="flex-1 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-sm shadow-lg shadow-emerald-600/25 transition">
+            🚀 Start Tracking Now
+          </button>
+        </div>
+        <button type="button" data-skip-step="5" class="onboard-skip-btn w-full py-1.5 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition">
+          Skip & Go to Main Page →
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Top Android Status / Notification Toast Banner -->
+  <div id="reminderToast" class="fixed top-3 inset-x-3 z-50 max-w-md mx-auto hidden gpu-smooth">
+    <div class="bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white rounded-2xl p-4 shadow-2xl border border-sky-500/40 flex items-center justify-between gap-3 animate-pop">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-11 h-11 rounded-xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center shrink-0 text-sky-400">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-sky-400" id="toastIntervalBadge">Hydration Alert</span>
+            <span class="text-[10px] text-slate-400" id="toastTimeLabel">Now</span>
+          </div>
+          <p class="text-sm font-semibold truncate" id="toastTitle">Drink 100 ml of water now!</p>
+          <p class="text-xs text-slate-300 truncate" id="toastSubtitle">Stay on pace for your daily weather-adjusted target.</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button id="toastDrinkBtn" type="button" class="px-3 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 active:scale-95 text-xs font-bold text-white transition">
+          +Drink
+        </button>
+        <button id="toastDismissBtn" type="button" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700/60 transition" aria-label="Dismiss alert">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- General Action Feedback Toast -->
+  <div id="statusToast" class="fixed bottom-24 inset-x-4 z-40 max-w-sm mx-auto pointer-events-none hidden gpu-smooth">
+    <div class="bg-slate-900/90 dark:bg-slate-800/95 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-lg border border-slate-700/60 flex items-center justify-center gap-2 text-center animate-pop">
+      <span id="statusToastIcon">💧</span>
+      <span id="statusToastText">Added 200 ml of water!</span>
+    </div>
+  </div>
+
+  <!-- Morning Punishment Modal (Triggers at Next-Day Start Time when target was not met) -->
+  <div id="punishmentModal" class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-rose-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl animate-pop">
+      <div class="flex items-center justify-between mb-3">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+          ⚠️ Morning Penalty Triggered
+        </span>
+        <span class="text-xs font-medium text-slate-500 dark:text-slate-400" id="punishmentWakeTimeBadge">Start Time: 07:00</span>
+      </div>
+      <h2 class="text-xl font-extrabold text-slate-900 dark:text-white mb-1">Yesterday's Water Target Missed!</h2>
+      <p class="text-xs text-slate-600 dark:text-slate-400 mb-4" id="punishmentReasonText">
+        You didn't finish yesterday's full hydration goal before sleep time. Complete your random morning challenge to start today fresh!
+      </p>
+
+      <div class="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-2xl p-4 mb-4">
+        <div class="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-1">Today's Random Punishment</div>
+        <div class="text-base font-bold text-slate-900 dark:text-white flex items-start gap-2.5" id="punishmentTaskText">
+          <span class="text-2xl leading-none" id="punishmentTaskEmoji">🏃</span>
+          <span id="punishmentTaskTitle">Do 25 Jumping Jacks right now & drink a 200 ml bonus glass of water!</span>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="rerollPunishmentBtn" type="button" class="flex-1 py-2.5 px-3 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition">
+          🎲 Reroll Random Punishment
+        </button>
+        <button id="completePunishmentBtn" type="button" class="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white shadow-md shadow-rose-600/25 active:scale-95 transition">
+          ✅ Punishment Completed
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden HTML5 Audio Elements for Background Keep-Alive & Minimized Loud Alarm -->
+  <audio id="bgKeepAliveAudio" loop preload="auto" class="hidden"></audio>
+  <audio id="bgAlarmAudio" preload="auto" class="hidden"></audio>
+
+  <!-- Phone OS Permission Diagnostic & Action Modal -->
+  <div id="permissionGuideModal" class="fixed inset-0 z-[65] bg-slate-950/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-amber-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl animate-pop">
+      <div class="flex items-center justify-between mb-3">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+          📲 Phone Permission Required
+        </span>
+        <button id="closePermGuideModalBtn" type="button" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white">
+          ✕
+        </button>
+      </div>
+      <h3 class="text-lg font-extrabold text-slate-900 dark:text-white mb-1" id="permModalHeadline">Android Permission Blocked by APK Wrapper</h3>
+      <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-3" id="permModalBody">
+        Your current APK wrapper did not declare this permission in its AndroidManifest.xml, so Android App Info shows "No permissions allowed."
+      </p>
+      <div class="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200 space-y-2 mb-4">
+        <div class="font-bold text-sky-600 dark:text-sky-400">✅ Active Workaround Enabled Now:</div>
+        <p id="permModalWorkaroundText">
+          We've activated Background Audio Keep-Alive + Lock-Screen Media Notification so your phone stays awake and rings out loud when minimized!
+        </p>
+      </div>
+      <button id="gotItPermGuideBtn" type="button" class="w-full py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition">
+        Activate Background Audio Alarm & Continue
+      </button>
+    </div>
+  </div>
+
+  <!-- Formula Breakdown Modal -->
+  <div id="formulaModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl animate-pop">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">How Your Water Goal is Calculated</h3>
+        <button id="closeFormulaModalBtn" type="button" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="space-y-3 text-xs text-slate-600 dark:text-slate-300">
+        <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60">
+          <div class="font-bold text-slate-900 dark:text-white mb-1">1. Compulsory Body Metrics (Age, Height, Weight)</div>
+          <p>Base intake uses <span class="font-semibold text-sky-600 dark:text-sky-400">Weight (kg) × Age Multiplier</span> (40 ml/kg under 30 yrs, 35 ml/kg for 30–55 yrs, 30 ml/kg over 55 yrs) plus a <span class="font-semibold">Height surface modifier</span> (+3 ml per cm above 165 cm).</p>
+        </div>
+        <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60">
+          <div class="font-bold text-slate-900 dark:text-white mb-1">2. Live GPS / Address Weather & Temperature</div>
+          <p>Warm and hot climates increase perspiration. Above 25°C adds <span class="font-semibold text-amber-600 dark:text-amber-400">+60 ml per °C</span>, plus condition modifiers (+100 ml Sunny, +250 ml Humid, +400 ml Scorching).</p>
+        </div>
+        <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60">
+          <div class="font-bold text-slate-900 dark:text-white mb-1">3. 15 / 30 / 60-Minute Interval Quota</div>
+          <p>Your total daily water requirement is divided evenly across your chosen <span class="font-semibold text-emerald-600 dark:text-emerald-400">15, 30, or 60-minute interval</span> between your Wake-Up Start Time and Sleep End Time.</p>
+        </div>
+      </div>
+      <button id="gotItFormulaBtn" type="button" class="mt-4 w-full py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition">
+        Got It
+      </button>
+    </div>
+  </div>
+
+  <!-- Main App Shell -->
+  <div class="max-w-md mx-auto min-h-screen flex flex-col bg-white dark:bg-slate-900 shadow-2xl border-x border-slate-200/80 dark:border-slate-800/80 relative pb-24">
+
+    <!-- Android App Top Bar -->
+    <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/70 dark:border-slate-800 px-4 py-3">
+      <div class="flex items-center justify-between gap-2">
+        <!-- Brand & Live Tracker Pill -->
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center text-white shadow-md shadow-sky-500/25">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h1 class="text-base font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">HydroPulse</h1>
+              <span id="trackerActiveBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Active
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5" id="headerSubStatus">Smart Hydration • Android</p>
+          </div>
+        </div>
+
+        <!-- Right Controls: Setup Wizard Replay + Sound Toggle + Theme Switcher -->
+        <div class="flex items-center gap-1">
+          <button id="openOnboardingWizardBtn" type="button" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition text-xs font-bold" title="Open Setup Guide / Onboarding" aria-label="Open Setup Guide">
+            🧭
+          </button>
+
+          <button id="soundToggleBtn" type="button" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition" title="Toggle Water Sound Effects" aria-label="Toggle Sound Effects">
+            <span id="soundIconOn" class="block">🔊</span>
+            <span id="soundIconOff" class="hidden">🔇</span>
+          </button>
+
+          <!-- 3-Way Theme Segmented Control: Light | Dark | System -->
+          <div class="inline-flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700/70" role="group" aria-label="Theme Switcher">
+            <button id="themeLightBtn" type="button" class="px-2 py-1 rounded-lg text-[11px] font-semibold transition flex items-center gap-1" title="Light Theme">
+              ☀️ <span class="hidden sm:inline">Light</span>
+            </button>
+            <button id="themeDarkBtn" type="button" class="px-2 py-1 rounded-lg text-[11px] font-semibold transition flex items-center gap-1" title="Dark Theme">
+              🌙 <span class="hidden sm:inline">Dark</span>
+            </button>
+            <button id="themeSystemBtn" type="button" class="px-2 py-1 rounded-lg text-[11px] font-semibold transition flex items-center gap-1" title="System Default Theme">
+              ⚙️ <span class="hidden sm:inline">Auto</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Scrollable Content -->
+    <main class="flex-1 px-4 pt-4 space-y-5">
+
+      <!-- SECTION 1: HERO WATER TANK + 1-TAP DRINK BUTTONS (Primary View) -->
+      <section id="tabPanelTracker" class="space-y-4">
+
+        <!-- Top Streak & Today Summary Strip (Starts cleanly from 0!) -->
+        <div class="grid grid-cols-3 gap-2.5">
+          <!-- Streak Card -->
+          <div class="bg-gradient-to-br from-amber-500/10 to-orange-500/10 dark:from-amber-500/15 dark:to-orange-500/10 border border-amber-500/30 rounded-2xl p-3 flex items-center gap-2.5">
+            <div class="text-2xl leading-none">🔥</div>
+            <div class="min-w-0">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Streak</div>
+              <div class="text-base font-extrabold text-slate-900 dark:text-white truncate"><span id="streakCountText">0</span> Days</div>
+            </div>
+          </div>
+
+          <!-- Per Interval Quota Card (15m / 30m / 60m dynamic) -->
+          <div class="bg-gradient-to-br from-sky-500/10 to-blue-500/10 dark:from-sky-500/15 dark:to-blue-500/10 border border-sky-500/30 rounded-2xl p-3 flex items-center gap-2.5">
+            <div class="text-2xl leading-none">⏱️</div>
+            <div class="min-w-0">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-400" id="perIntervalHeaderLabel">Per 30 Min</div>
+              <div class="text-base font-extrabold text-slate-900 dark:text-white truncate"><span id="perIntervalAmountText">100</span> ml</div>
+            </div>
+          </div>
+
+          <!-- Weather Temp Pill -->
+          <div class="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/15 dark:to-teal-500/10 border border-emerald-500/30 rounded-2xl p-3 flex items-center gap-2">
+            <div class="text-2xl leading-none" id="miniWeatherIcon">☀️</div>
+            <div class="min-w-0">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 truncate" id="miniCityLabel">Khardaha</div>
+              <div class="text-base font-extrabold text-slate-900 dark:text-white truncate"><span id="miniTempText">31</span>°C</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Smooth 60FPS Animated Liquid Tank Card -->
+        <div class="relative rounded-3xl overflow-hidden border border-sky-200 dark:border-sky-900/70 bg-gradient-to-b from-sky-50/90 to-white dark:from-slate-900 dark:to-slate-900 shadow-lg">
+          <canvas id="waterWaveCanvas" class="w-full h-64 block gpu-smooth"></canvas>
+
+          <div class="absolute inset-0 flex flex-col justify-between p-5 pointer-events-none">
+            <div class="flex items-start justify-between">
+              <div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/85 dark:bg-slate-900/85 text-sky-700 dark:text-sky-300 shadow-sm backdrop-blur-sm">
+                  <span id="weatherAdjustmentBadge">+460 ml weather boost</span>
+                </span>
+              </div>
+              <button id="openFormulaBtn" type="button" class="pointer-events-auto px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/85 dark:bg-slate-900/85 text-slate-700 dark:text-slate-300 hover:bg-white shadow-sm backdrop-blur-sm transition">
+                ℹ️ Formula
+              </button>
+            </div>
+
+            <!-- Center Consumption Readout (Starts at 0 ml) -->
+            <div class="text-center my-auto">
+              <div class="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white drop-shadow-sm">
+                <span id="currentIntakeText">0</span>
+                <span class="text-lg font-bold text-slate-600 dark:text-slate-300">/ <span id="dailyTargetText">3050</span> ml</span>
+              </div>
+              <p class="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-1" id="remainingStatusText">
+                3,050 ml remaining today • 0% Complete
+              </p>
+            </div>
+
+            <!-- Bottom Bar inside Tank: Persistent Interval Countdown -->
+            <div class="flex items-center justify-between bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl px-3.5 py-2.5 border border-slate-200/70 dark:border-slate-800 shadow-sm pointer-events-auto">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-sky-500 pulse-indicator" id="timerPulseDot"></span>
+                <div>
+                  <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400" id="nextSipHeaderLabel">Next 30-Min Reminder</div>
+                  <div class="text-xs font-bold text-slate-900 dark:text-white">
+                    <span id="countdownTimerText">30:00</span> • Drink <span class="text-sky-600 dark:text-sky-400" id="recommendedSipInline">100 ml</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button id="drinkRecommendedNowBtn" type="button" class="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white text-xs font-bold shadow-sm transition">
+                  +Drink <span id="recommendedBtnAmount">100</span> ml
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ONE-TAP WATER INTAKE TRACKER -->
+        <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>🚰 Tap to Fill Water Intake</span>
+              </h2>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">One-tap presets with splash sound & wave fill</p>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button id="undoLastDrinkBtn" type="button" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 active:scale-95 transition disabled:opacity-40" title="Undo last drink">
+                ↩️ Undo
+              </button>
+              <button id="resetTodayIntakeBtn" type="button" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 active:scale-95 transition" title="Reset today's water">
+                Reset
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-4 gap-2 sm:gap-2.5">
+            <button type="button" data-drink-ml="100" class="drink-preset-btn group relative flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-slate-800 border-2 border-sky-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 active:scale-95 transition shadow-sm">
+              <span class="text-xl mb-0.5 group-hover:scale-110 transition">🥃</span>
+              <span class="text-xs font-extrabold text-slate-900 dark:text-white">+100 ml</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400">Small Cup</span>
+            </button>
+
+            <button type="button" data-drink-ml="200" class="drink-preset-btn group relative flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-slate-800 border-2 border-sky-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 active:scale-95 transition shadow-sm">
+              <span class="text-xl mb-0.5 group-hover:scale-110 transition">🥛</span>
+              <span class="text-xs font-extrabold text-slate-900 dark:text-white">+200 ml</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400">Glass</span>
+            </button>
+
+            <button type="button" data-drink-ml="300" class="drink-preset-btn group relative flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-slate-800 border-2 border-sky-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 active:scale-95 transition shadow-sm">
+              <span class="text-xl mb-0.5 group-hover:scale-110 transition">☕</span>
+              <span class="text-xs font-extrabold text-slate-900 dark:text-white">+300 ml</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400">Large Mug</span>
+            </button>
+
+            <button type="button" data-drink-ml="400" class="drink-preset-btn group relative flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-slate-800 border-2 border-sky-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 active:scale-95 transition shadow-sm">
+              <span class="text-xl mb-0.5 group-hover:scale-110 transition">🥤</span>
+              <span class="text-xs font-extrabold text-slate-900 dark:text-white">+400 ml</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400">Tumbler</span>
+            </button>
+
+            <button type="button" data-drink-ml="500" class="drink-preset-btn group relative flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-slate-800 border-2 border-sky-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 active:scale-95 transition shadow-sm">
+              <span class="text-xl mb-0.5 group-hover:scale-110 transition">🧴</span>
+              <span class="text-xs font-extrabold text-slate-900 dark:text-white">+500 ml</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400">Half Bottle</span>
+            </button>
+
+            <button type="button" data-drink-ml="600" class="drink-preset-btn group relative flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-slate-800 border-2 border-sky-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 active:scale-95 transition shadow-sm">
+              <span class="text-xl mb-0.5 group-hover:scale-110 transition">🍶</span>
+              <span class="text-xs font-extrabold text-slate-900 dark:text-white">+600 ml</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400">Sports Flask</span>
+            </button>
+
+            <button type="button" data-drink-ml="750" class="drink-preset-btn group relative flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-slate-800 border-2 border-sky-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 active:scale-95 transition shadow-sm">
+              <span class="text-xl mb-0.5 group-hover:scale-110 transition">💧</span>
+              <span class="text-xs font-extrabold text-slate-900 dark:text-white">+750 ml</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400">Gym Bottle</span>
+            </button>
+
+            <button type="button" data-drink-ml="1000" class="drink-preset-btn group relative flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-slate-800 border-2 border-sky-200 dark:border-slate-700 hover:border-sky-500 dark:hover:border-sky-400 active:scale-95 transition shadow-sm">
+              <span class="text-xl mb-0.5 group-hover:scale-110 transition">🫗</span>
+              <span class="text-xs font-extrabold text-slate-900 dark:text-white">+1000 ml</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400">1L Carafe</span>
+            </button>
+          </div>
+
+          <!-- Today's Drink Log Timeline -->
+          <div class="mt-4 pt-3 border-t border-slate-200/70 dark:border-slate-700/60">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Today's Intake Log (<span id="logCountBadge">0</span> drinks)</span>
+              <span class="text-[11px] text-slate-500 dark:text-slate-400" id="lastDrinkTimeText">No drinks logged yet today</span>
+            </div>
+            <div id="drinkHistoryList" class="flex gap-2 overflow-x-auto pb-1"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: COMPULSORY BODY PROFILE (AGE, HEIGHT, WEIGHT) & WEATHER/GPS -->
+      <section id="tabPanelProfileWeather" class="space-y-4">
+
+        <!-- Compulsory Body Metrics Card -->
+        <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <div class="flex items-center gap-1.5">
+                <h2 class="text-sm font-extrabold text-slate-900 dark:text-white">👤 Body Metrics Calculator</h2>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/15 text-sky-600 dark:text-sky-400">Compulsory</span>
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">Age, height & weight determine your baseline hydration</p>
+            </div>
+            <span class="text-xs font-bold text-sky-600 dark:text-sky-400" id="baseWaterOutputBadge">Base: 2,620 ml</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2.5">
+            <!-- Age -->
+            <div class="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <label for="inputAge" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Age (Yrs) *</label>
+              <input id="inputAge" type="number" min="5" max="110" value="25" class="w-full text-lg font-extrabold bg-transparent text-slate-900 dark:text-white focus:outline-none border-b border-slate-200 dark:border-slate-700 focus:border-sky-500 pb-0.5" />
+              <div class="flex items-center justify-between mt-1.5">
+                <button type="button" data-step-target="inputAge" data-step="-1" class="step-btn px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-bold">-</button>
+                <button type="button" data-step-target="inputAge" data-step="1" class="step-btn px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-bold">+</button>
+              </div>
+            </div>
+
+            <!-- Height -->
+            <div class="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <label for="inputHeight" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Height (cm) *</label>
+              <input id="inputHeight" type="number" min="80" max="240" value="170" class="w-full text-lg font-extrabold bg-transparent text-slate-900 dark:text-white focus:outline-none border-b border-slate-200 dark:border-slate-700 focus:border-sky-500 pb-0.5" />
+              <div class="flex items-center justify-between mt-1.5">
+                <button type="button" data-step-target="inputHeight" data-step="-1" class="step-btn px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-bold">-</button>
+                <button type="button" data-step-target="inputHeight" data-step="1" class="step-btn px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-bold">+</button>
+              </div>
+            </div>
+
+            <!-- Weight -->
+            <div class="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <label for="inputWeight" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Weight (kg) *</label>
+              <input id="inputWeight" type="number" min="20" max="250" value="65" class="w-full text-lg font-extrabold bg-transparent text-slate-900 dark:text-white focus:outline-none border-b border-slate-200 dark:border-slate-700 focus:border-sky-500 pb-0.5" />
+              <div class="flex items-center justify-between mt-1.5">
+                <button type="button" data-step-target="inputWeight" data-step="-1" class="step-btn px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-bold">-</button>
+                <button type="button" data-step-target="inputWeight" data-step="1" class="step-btn px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-xs font-bold">+</button>
+              </div>
+            </div>
+          </div>
+
+          <p id="profileValidationMsg" class="text-[11px] text-rose-600 dark:text-rose-400 font-semibold mt-2 hidden">
+            ⚠️ Please enter valid compulsory Age (5–110), Height (80–240 cm), and Weight (20–250 kg).
+          </p>
+        </div>
+
+        <!-- GPS & Google Maps Address Weather & Temperature Card -->
+        <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>📍 GPS & Maps Address Weather</span>
+              </h2>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">Asks permission before GPS • Optional manual override</p>
+            </div>
+            <button id="detectGpsBtn" type="button" class="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 4v2m0 8v2m-6-6h2m8 0h2"/>
+              </svg>
+              <span id="gpsBtnText">Use GPS</span>
+            </button>
+          </div>
+
+          <!-- Address Search Input -->
+          <div class="flex gap-2">
+            <div class="relative flex-1">
+              <input id="addressSearchInput" type="text" value="Khardaha, West Bengal, India" placeholder="Enter your address or city (Google Maps / GPS)..." class="w-full pl-8 pr-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-sky-500" />
+              <span class="absolute left-2.5 top-2 text-slate-400 text-xs">🗺️</span>
+            </div>
+            <button id="fetchAddressWeatherBtn" type="button" class="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold shrink-0 active:scale-95 transition">
+              Sync Weather
+            </button>
+          </div>
+
+          <!-- Quick City / Address Chips -->
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
+            <span class="text-[10px] font-bold uppercase text-slate-400 shrink-0">Quick Map Pins:</span>
+            <button type="button" data-city="Khardaha, WB" data-temp="31" data-cond="sunny" data-hum="68" class="city-preset-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold shrink-0 hover:border-sky-500 transition">Khardaha (31°C)</button>
+            <button type="button" data-city="Kolkata, WB" data-temp="33" data-cond="humid" data-hum="78" class="city-preset-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold shrink-0 hover:border-sky-500 transition">Kolkata (33°C)</button>
+            <button type="button" data-city="Delhi, NCR" data-temp="38" data-cond="hot" data-hum="42" class="city-preset-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold shrink-0 hover:border-sky-500 transition">Delhi (38°C)</button>
+            <button type="button" data-city="Mumbai, MH" data-temp="30" data-cond="humid" data-hum="82" class="city-preset-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold shrink-0 hover:border-sky-500 transition">Mumbai (30°C)</button>
+            <button type="button" data-city="Bengaluru, KA" data-temp="24" data-cond="pleasant" data-hum="55" class="city-preset-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold shrink-0 hover:border-sky-500 transition">Bengaluru (24°C)</button>
+            <button type="button" data-city="Darjeeling, WB" data-temp="14" data-cond="cool" data-hum="65" class="city-preset-btn px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold shrink-0 hover:border-sky-500 transition">Darjeeling (14°C)</button>
+          </div>
+
+          <!-- Weather & Temperature Live Sliders / Selector -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            <div class="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <div class="flex items-center justify-between mb-1">
+                <label for="tempSlider" class="text-[11px] font-bold text-slate-600 dark:text-slate-300">Temperature (°C)</label>
+                <span class="text-sm font-extrabold text-amber-600 dark:text-amber-400"><span id="tempValueLabel">31</span>°C</span>
+              </div>
+              <input id="tempSlider" type="range" min="5" max="48" value="31" class="w-full accent-sky-500 cursor-pointer" />
+              <div class="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                <span>5°C Cold</span>
+                <span>25°C Mild</span>
+                <span>48°C Extreme</span>
+              </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <label for="weatherConditionSelect" class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Weather Condition</label>
+              <select id="weatherConditionSelect" class="w-full py-1.5 px-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:outline-none">
+                <option value="sunny" selected>☀️ Sunny & Warm (+100 ml)</option>
+                <option value="humid">💧 High Humidity / Muggy (+250 ml)</option>
+                <option value="hot">🔥 Scorching / Heatwave (+400 ml)</option>
+                <option value="pleasant">⛅ Partly Cloudy / Pleasant (+0 ml)</option>
+                <option value="rainy">🌧️ Rainy / Monsoon (+50 ml)</option>
+                <option value="cool">❄️ Cool / Cold (-100 ml)</option>
+              </select>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 flex items-center justify-between">
+                <span id="gpsCoordStatus">GPS: Optional (Not Requested)</span>
+                <span class="font-bold text-emerald-600 dark:text-emerald-400" id="weatherBoostSummary">+460 ml added</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: WAKE/SLEEP SCHEDULE, 15/30/60-MIN REMINDER & BACKGROUND PERMISSIONS -->
+      <section id="tabPanelSchedule" class="space-y-4">
+        <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 space-y-3.5">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-sm font-extrabold text-slate-900 dark:text-white">⏰ Schedule & Reminder Interval</h2>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">Persistent timer • Never resets on refresh or close</p>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-500/15 text-sky-600 dark:text-sky-400" id="activeWindowHoursBadge">16.0h Active (32 slots)</span>
+          </div>
+
+          <!-- 3 Reminder Interval Options: 15 Minutes | 30 Minutes | 60 Minutes -->
+          <div class="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Reminder Interval (15m / 30m / 60m)</span>
+              <span class="text-xs font-extrabold text-sky-600 dark:text-sky-400" id="mainIntervalQuotaBadge">100 ml / 30 min</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <button type="button" data-interval-mins="15" class="interval-choice-btn py-2 px-2 rounded-xl text-xs font-bold border transition">
+                ⏱️ 15 Mins
+              </button>
+              <button type="button" data-interval-mins="30" class="interval-choice-btn py-2 px-2 rounded-xl text-xs font-bold border transition">
+                ⏱️ 30 Mins
+              </button>
+              <button type="button" data-interval-mins="60" class="interval-choice-btn py-2 px-2 rounded-xl text-xs font-bold border transition">
+                ⏱️ 60 Mins
+              </button>
+            </div>
+          </div>
+
+          <!-- 3 Control Modes: Automatic Schedule | Manual Start/Stop | Session Timer -->
+          <div class="grid grid-cols-3 gap-1.5 bg-white dark:bg-slate-900 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <button type="button" data-track-mode="auto" class="track-mode-btn py-2 px-2 rounded-xl text-xs font-bold transition">
+              🔄 Auto Schedule
+            </button>
+            <button type="button" data-track-mode="manual" class="track-mode-btn py-2 px-2 rounded-xl text-xs font-bold transition">
+              ✋ Manual On/Off
+            </button>
+            <button type="button" data-track-mode="timer" class="track-mode-btn py-2 px-2 rounded-xl text-xs font-bold transition">
+              ⏳ Custom Timer
+            </button>
+          </div>
+
+          <!-- Start Time & End Time Pickers -->
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <label for="wakeStartTimeInput" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">☀️ Starting Time (Wake)</label>
+              <input id="wakeStartTimeInput" type="time" value="07:00" class="w-full text-sm font-extrabold bg-transparent text-slate-900 dark:text-white focus:outline-none" />
+              <span class="text-[10px] text-slate-400">Morning check & start</span>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <label for="sleepEndTimeInput" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">🌙 Ending Time (Sleep)</label>
+              <input id="sleepEndTimeInput" type="time" value="23:00" class="w-full text-sm font-extrabold bg-transparent text-slate-900 dark:text-white focus:outline-none" />
+              <span class="text-[10px] text-slate-400">Pauses overnight</span>
+            </div>
+          </div>
+
+          <!-- Quick 15-Hour / 16-Hour Window Preset Pills -->
+          <div class="flex items-center justify-between gap-2 bg-white dark:bg-slate-800 px-3 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Waking Window Preset:</span>
+            <div class="flex items-center gap-1.5">
+              <button id="preset15hBtn" type="button" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-sky-500 hover:text-white text-xs font-bold transition">
+                15 Hrs (30 × 30m)
+              </button>
+              <button id="preset16hBtn" type="button" class="px-2.5 py-1 rounded-lg bg-sky-500 text-white text-xs font-bold transition">
+                16 Hrs (32 × 30m)
+              </button>
+            </div>
+          </div>
+
+          <!-- Manual / Timer Mode Control Bar & Push / Background Permissions -->
+          <div class="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs font-bold text-slate-900 dark:text-white" id="trackerStateHeadline">Tracker is Running</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400" id="trackerStateSubline">Formula: <span id="formulaInlineBreakdown">3050 ml ÷ 32 slots = 100 ml / 30 min</span></div>
+              </div>
+              <button id="toggleTrackerRunBtn" type="button" class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold active:scale-95 transition">
+                ⏸️ Pause Tracker
+              </button>
+            </div>
+
+            <!-- Custom Session Countdown Controls -->
+            <div id="customTimerBox" class="pt-2 border-t border-slate-200/70 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-2">
+              <div class="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                Session Auto-Stop Timer: <span class="font-extrabold text-sky-600 dark:text-sky-400" id="sessionTimerDisplay">16:00:00</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button type="button" data-session-hrs="2" class="session-dur-btn px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-[11px] font-bold">2h</button>
+                <button type="button" data-session-hrs="8" class="session-dur-btn px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-[11px] font-bold">8h</button>
+                <button type="button" data-session-hrs="15" class="session-dur-btn px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-[11px] font-bold">15h</button>
+                <button type="button" data-session-hrs="16" class="session-dur-btn px-2 py-1 rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-400 text-[11px] font-bold">16h</button>
+              </div>
+            </div>
+
+            <!-- Push Notification & Background Run Toggles -->
+            <div class="pt-2 border-t border-slate-200/70 dark:border-slate-700/60 space-y-2">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold text-slate-800 dark:text-slate-200">📲 Push Notifications</div>
+                  <div class="text-[10px] text-slate-500 dark:text-slate-400" id="pushPermStatusSubtext">Turn ON to allow phone notification alerts</div>
+                </div>
+                <button id="enableAndroidNotifBtn" type="button" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold active:scale-95 transition">
+                  📲 Enable Push Alerts
+                </button>
+              </div>
+
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold text-slate-800 dark:text-slate-200">⚡ Background Usage Mode</div>
+                  <div class="text-[10px] text-slate-500 dark:text-slate-400" id="bgModeStatusSubtext">Keeps timer & reminders running when minimized</div>
+                </div>
+                <button id="toggleBackgroundModeBtn" type="button" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold active:scale-95 transition">
+                  Grant Background Run
+                </button>
+              </div>
+            </div>
+
+            <!-- Test Notification Button -->
+            <div class="pt-1">
+              <button id="test30MinAlertBtn" type="button" class="w-full py-2 px-3 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-bold active:scale-95 transition">
+                🔔 Test 30-Min Reminder Now
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4: DAILY STREAK & NEXT-DAY RANDOM PUNISHMENT SYSTEM -->
+      <section id="tabPanelStreakPunishment" class="space-y-4">
+        <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 space-y-3.5">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-sm font-extrabold text-slate-900 dark:text-white">🏆 Daily Goal Streak & Next-Day Penalty</h2>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">Miss your daily target? Get a random punishment at wake time!</p>
+            </div>
+            <div class="text-right">
+              <span class="text-xs font-extrabold text-amber-600 dark:text-amber-400">Best: <span id="bestStreakText">0</span> 🔥</span>
+            </div>
+          </div>
+
+          <!-- 7-Day Streak Visual Tracker -->
+          <div id="weeklyStreakGrid" class="grid grid-cols-7 gap-1.5 bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-center"></div>
+
+          <!-- Active or Preview Morning Punishment Box -->
+          <div class="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <span>🎲 Next-Day Starting Time Punishment</span>
+              </span>
+              <span id="punishmentStatusPill" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                No Pending Penalty
+              </span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200/70 dark:border-slate-700/70 flex items-center gap-3">
+              <div class="text-2xl shrink-0" id="cardPunishmentEmoji">🏋️</div>
+              <div class="min-w-0 flex-1">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400" id="cardPunishmentSubheader">Assigned at <span id="punishmentAssignTimeText">07:00</span> if today's goal is missed:</div>
+                <div class="text-xs font-bold text-slate-900 dark:text-white mt-0.5" id="cardPunishmentText">
+                  Do 20 Squats + Drink an extra 200 ml glass of water immediately after waking up!
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button id="simulateMissedDayBtn" type="button" class="py-2 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs font-bold active:scale-95 transition">
+                🌅 Simulate Next-Day Punishment
+              </button>
+              <button id="spinNewPunishmentBtn" type="button" class="py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold active:scale-95 transition">
+                🎲 Generate Random Punishment
+              </button>
+            </div>
+            <button id="simulateGoalMetDayBtn" type="button" class="w-full py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold active:scale-95 transition">
+              🎉 Complete Today's Goal & Advance Streak (+1 Day)
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Android Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 inset-x-0 z-30 max-w-md mx-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-3 py-2">
+      <div class="grid grid-cols-4 gap-1">
+        <button type="button" data-nav-view="all" class="bottom-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-sky-600 dark:text-sky-400 bg-sky-500/10 font-bold text-[11px] transition">
+          <span class="text-base leading-none mb-0.5">💧</span>
+          <span>All-in-One</span>
+        </button>
+        <button type="button" data-nav-view="profile" class="bottom-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold text-[11px] transition">
+          <span class="text-base leading-none mb-0.5">📍</span>
+          <span>GPS & Body</span>
+        </button>
+        <button type="button" data-nav-view="schedule" class="bottom-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold text-[11px] transition">
+          <span class="text-base leading-none mb-0.5">⏰</span>
+          <span>30m Timer</span>
+        </button>
+        <button type="button" data-nav-view="streak" class="bottom-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold text-[11px] transition">
+          <span class="text-base leading-none mb-0.5">🔥</span>
+          <span>Streak & Penalty</span>
+        </button>
+      </div>
+    </nav>
+
+  </div>
+
+  <script>
+    // =========================================================================
+    // HYDROPULSE v2 — ANDROID SMART WEATHER & BODY WATER TRACKER
+    // =========================================================================
+
+    const STORAGE_KEY = 'hydropulse_android_state_v2';
+
+    const PUNISHMENT_POOL = [
+      { emoji: '🏃', text: 'Do 25 Jumping Jacks right now & drink a 200 ml bonus glass of water!' },
+      { emoji: '🏋️', text: 'Complete 20 Bodyweight Squats before checking social media this morning!' },
+      { emoji: '🧘', text: 'Hold a 45-second forearm plank + drink 300 ml of plain water immediately!' },
+      { emoji: '🚫', text: 'Zero sugary drinks, soda, or packaged juice allowed for the entire day!' },
+      { emoji: '🚶', text: 'Walk 600 brisk steps indoors or outdoors within the next 15 minutes!' },
+      { emoji: '💪', text: 'Do 15 Wall Push-ups or Floor Push-ups + chug 200 ml of cool water!' },
+      { emoji: '🧊', text: 'Splash cool water on your face 5 times & drink two 100 ml cups back-to-back!' },
+      { emoji: '🦵', text: 'Do 20 High Knees in place + finish your first 200 ml morning hydration quota!' }
+    ];
+
+    const nowInit = Date.now();
+
+    // Everything starts cleanly from 0 for a brand-new user!
+    const defaultState = {
+      onboardingCompleted: false,
+      age: 25,
+      heightCm: 170,
+      weightKg: 65,
+      address: 'Khardaha, West Bengal, India',
+      shortCity: 'Khardaha',
+      lat: 22.72,
+      lon: 88.38,
+      locationPermissionGranted: false,
+      tempC: 31,
+      humidity: 68,
+      weatherCondition: 'sunny',
+      wakeStartTime: '07:00',
+      sleepEndTime: '23:00',
+      reminderIntervalMins: 30, // 15 | 30 | 60
+      pushNotificationsEnabled: false,
+      backgroundModeEnabled: false,
+      trackingMode: 'auto', // 'auto' | 'manual' | 'timer'
+      isTrackerRunning: true,
+      // Persistent timestamps so closing or refreshing NEVER resets the timer!
+      nextReminderTimestampMs: nowInit + 30 * 60 * 1000,
+      pausedIntervalRemainingSec: null,
+      sessionEndTimestampMs: nowInit + 16 * 3600 * 1000,
+      pausedSessionRemainingSec: null,
+      sessionDurationHrs: 16,
+      // All water & streak metrics start from 0!
+      currentIntakeMl: 0,
+      drinkLogs: [],
+      streakDays: 0,
+      bestStreak: 0,
+      weekHistory: [false, false, false, false, false, false, false],
+      pendingPunishment: null,
+      previewPunishmentIndex: 0,
+      soundEnabled: true,
+      themePref: 'system'
+    };
+
+    let state = loadState();
+    let audioCtx = null;
+    let wakeLockSentinel = null;
+    let currentOnboardStep = 1;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const merged = Object.assign({}, defaultState, parsed);
+          // Ensure valid timestamps exist
+          const intervalMs = (Number(merged.reminderIntervalMins) || 30) * 60 * 1000;
+          if (!merged.nextReminderTimestampMs || isNaN(merged.nextReminderTimestampMs)) {
+            merged.nextReminderTimestampMs = Date.now() + intervalMs;
+          }
+          if (!merged.sessionEndTimestampMs || isNaN(merged.sessionEndTimestampMs)) {
+            merged.sessionEndTimestampMs = Date.now() + (Number(merged.sessionDurationHrs) || 16) * 3600 * 1000;
+          }
+          return merged;
+        }
+      } catch (e) {}
+      return JSON.parse(JSON.stringify(defaultState));
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    // =========================================================================
+    // PERSISTENT TIMESTAMP HELPERS (Fixes Timer Reset on Refresh/Close)
+    // =========================================================================
+    function getIntervalRemainingSeconds() {
+      const intervalSec = (Number(state.reminderIntervalMins) || 30) * 60;
+      if (!state.isTrackerRunning) {
+        return state.pausedIntervalRemainingSec != null ? state.pausedIntervalRemainingSec : intervalSec;
+      }
+      const diffSec = Math.ceil((state.nextReminderTimestampMs - Date.now()) / 1000);
+      return Math.max(0, diffSec);
+    }
+
+    function resetIntervalTimerToFull() {
+      const intervalMins = Number(state.reminderIntervalMins) || 30;
+      state.nextReminderTimestampMs = Date.now() + intervalMins * 60 * 1000;
+      state.pausedIntervalRemainingSec = intervalMins * 60;
+      syncScheduleWithServiceWorker();
+      saveState();
+    }
+
+    function getSessionRemainingSeconds() {
+      const fallbackSec = (Number(state.sessionDurationHrs) || 16) * 3600;
+      if (!state.isTrackerRunning) {
+        return state.pausedSessionRemainingSec != null ? state.pausedSessionRemainingSec : fallbackSec;
+      }
+      const diffSec = Math.ceil((state.sessionEndTimestampMs - Date.now()) / 1000);
+      return Math.max(0, diffSec);
+    }
+
+    // =========================================================================
+    // WEB AUDIO API — SYNTHESIZED WATER POUR, SPLASH & NOTIFICATION SOUNDS
+    // =========================================================================
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playWaterPourSound(amountMl) {
+      if (!state.soundEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+
+        const now = audioCtx.currentTime;
+        const bubbles = Math.min(7, Math.max(3, Math.floor(amountMl / 150) + 2));
+        for (let i = 0; i < bubbles; i++) {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          const startTime = now + i * 0.065;
+          const duration = 0.09;
+
+          osc.type = 'sine';
+          const baseFreq = 420 + (i * 55) + Math.random() * 80;
+          osc.frequency.setValueAtTime(baseFreq, startTime);
+          osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.65, startTime + duration);
+
+          gain.gain.setValueAtTime(0.001, startTime);
+          gain.gain.linearRampToValueAtTime(0.16, startTime + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(startTime);
+          osc.stop(startTime + duration);
+        }
+      } catch (e) {}
+    }
+
+    function playGoalAchievedSound() {
+      if (!state.soundEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.5];
+        const now = audioCtx.currentTime;
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.09);
+          gain.gain.setValueAtTime(0.18, now + idx * 0.09);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.09 + 0.35);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + idx * 0.09);
+          osc.stop(now + idx * 0.09 + 0.35);
+        });
+      } catch (e) {}
+    }
+
+    function playReminderChime() {
+      if (!state.soundEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        [587.33, 880].forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.14);
+          gain.gain.setValueAtTime(0.15, now + idx * 0.14);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.14 + 0.3);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + idx * 0.14);
+          osc.stop(now + idx * 0.14 + 0.3);
+        });
+      } catch (e) {}
+    }
+
+    function playPunishmentAlertSound() {
+      if (!state.soundEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        [311.13, 277.18].forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.18);
+          gain.gain.setValueAtTime(0.12, now + idx * 0.18);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.18 + 0.28);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + idx * 0.18);
+          osc.stop(now + idx * 0.18 + 0.28);
+        });
+      } catch (e) {}
+    }
+
+    // =========================================================================
+    // THEME ENGINE (LIGHT, DARK, SYSTEM DEFAULT)
+    // =========================================================================
+    const darkMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    function applyTheme(pref) {
+      state.themePref = pref;
+      const isDark = pref === 'dark' || (pref === 'system' && darkMediaQuery.matches);
+      document.documentElement.classList.toggle('dark', isDark);
+
+      const btnLight = document.getElementById('themeLightBtn');
+      const btnDark = document.getElementById('themeDarkBtn');
+      const btnSys = document.getElementById('themeSystemBtn');
+
+      const activeClasses = ['bg-white', 'dark:bg-slate-900', 'text-sky-600', 'dark:text-sky-400', 'shadow-sm'];
+      const inactiveClasses = ['text-slate-500', 'dark:text-slate-400'];
+
+      [
+        { el: btnLight, key: 'light' },
+        { el: btnDark, key: 'dark' },
+        { el: btnSys, key: 'system' }
+      ].forEach(({ el, key }) => {
+        if (!el) return;
+        el.classList.remove(...activeClasses, ...inactiveClasses);
+        if (pref === key) {
+          el.classList.add(...activeClasses);
+        } else {
+          el.classList.add(...inactiveClasses);
+        }
+      });
+
+      saveState();
+    }
+
+    darkMediaQuery.addEventListener('change', () => {
+      if (state.themePref === 'system') {
+        applyTheme('system');
+      }
+    });
+
+    // =========================================================================
+    // SCIENTIFIC WATER CONSUMPTION & 15 / 30 / 60-MIN INTERVAL CALCULATOR
+    // =========================================================================
+    function calculateWaterMetrics() {
+      const age = Math.min(110, Math.max(5, Number(state.age) || 25));
+      const heightCm = Math.min(240, Math.max(80, Number(state.heightCm) || 170));
+      const weightKg = Math.min(250, Math.max(20, Number(state.weightKg) || 65));
+
+      let mlPerKg = 35;
+      if (age < 30) mlPerKg = 40;
+      else if (age > 55) mlPerKg = 30;
+
+      let baseMl = weightKg * mlPerKg;
+      const heightAdjust = Math.round((heightCm - 165) * 3);
+      baseMl = Math.max(1200, baseMl + heightAdjust);
+
+      let tempBoost = 0;
+      const temp = Number(state.tempC) || 25;
+      if (temp > 25) {
+        tempBoost += Math.round((temp - 25) * 60);
+      } else if (temp < 15) {
+        tempBoost -= 100;
+      }
+
+      const condModifiers = {
+        sunny: 100,
+        humid: 250,
+        hot: 400,
+        pleasant: 0,
+        rainy: 50,
+        cool: -100
+      };
+      const condBoost = condModifiers[state.weatherCondition] ?? 0;
+      const weatherTotalBoost = Math.max(-150, tempBoost + condBoost);
+
+      const rawTotal = baseMl + weatherTotalBoost;
+      const totalDailyMl = Math.max(1500, Math.round(rawTotal / 50) * 50);
+
+      // Active Waking Window (Start Time to End Time)
+      const [startH, startM] = (state.wakeStartTime || '07:00').split(':').map(Number);
+      const [endH, endM] = (state.sleepEndTime || '23:00').split(':').map(Number);
+      let startMins = startH * 60 + startM;
+      let endMins = endH * 60 + endM;
+      if (endMins <= startMins) {
+        endMins += 24 * 60;
+      }
+      const activeMins = Math.max(60, endMins - startMins);
+      const activeHours = activeMins / 60;
+
+      // Dynamic interval calculation for 15, 30, or 60 minutes!
+      const intervalMins = [15, 30, 60].includes(Number(state.reminderIntervalMins))
+        ? Number(state.reminderIntervalMins)
+        : 30;
+      const intervalSlots = Math.max(1, Math.round(activeMins / intervalMins));
+      const perIntervalMl = Math.max(30, Math.round((totalDailyMl / intervalSlots) / 10) * 10);
+
+      return {
+        baseMl: Math.round(baseMl / 10) * 10,
+        weatherTotalBoost,
+        totalDailyMl,
+        activeHours,
+        intervalMins,
+        intervalSlots,
+        perIntervalMl,
+        startMins,
+        endMins
+      };
+    }
+
+    function isWithinWakeSchedule() {
+      const now = new Date();
+      const currentMins = now.getHours() * 60 + now.getMinutes();
+      const [startH, startM] = (state.wakeStartTime || '07:00').split(':').map(Number);
+      const [endH, endM] = (state.sleepEndTime || '23:00').split(':').map(Number);
+      const startMins = startH * 60 + startM;
+      const endMins = endH * 60 + endM;
+
+      if (endMins > startMins) {
+        return currentMins >= startMins && currentMins < endMins;
+      } else {
+        return currentMins >= startMins || currentMins < endMins;
+      }
+    }
+
+    // =========================================================================
+    // SYNTHESIZED WAV GENERATOR FOR BACKGROUND WEBVIEW KEEP-ALIVE & LOUD ALARM
+    // =========================================================================
+    function generateToneWavDataUri(isLoudAlarm) {
+      const sampleRate = 8000;
+      const durationSec = isLoudAlarm ? 3 : 1;
+      const numSamples = sampleRate * durationSec;
+      const buffer = new ArrayBuffer(44 + numSamples * 2);
+      const view = new DataView(buffer);
+
+      function writeStr(offset, str) {
+        for (let i = 0; i < str.length; i++) {
+          view.setUint8(offset + i, str.charCodeAt(i));
+        }
+      }
+
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + numSamples * 2, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeStr(36, 'data');
+      view.setUint32(40, numSamples * 2, true);
+
+      for (let i = 0; i < numSamples; i++) {
+        const t = i / sampleRate;
+        let sample = 0;
+        if (isLoudAlarm) {
+          // Pleasant two-tone hydration chime (587Hz D5 -> 880Hz A5 pulses)
+          const cycle = t % 0.75;
+          const freq = cycle < 0.35 ? 587.33 : 880.0;
+          const env = Math.max(0, 1 - (cycle % 0.35) / 0.35);
+          sample = Math.sin(2 * Math.PI * freq * t) * 0.65 * env;
+        } else {
+          // Sub-audible 1Hz micro-signal so Android WebView keeps background thread & MediaSession alive
+          sample = Math.sin(2 * Math.PI * 10 * t) * 0.0005;
+        }
+        const pcm = Math.max(-1, Math.min(1, sample));
+        view.setInt16(44 + i * 2, pcm * 32767, true);
+      }
+
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return 'data:audio/wav;base64,' + btoa(binary);
+    }
+
+    let silentWavUri = null;
+    let alarmWavUri = null;
+
+    function startBackgroundAudioAndMediaSession() {
+      try {
+        if (!silentWavUri) silentWavUri = generateToneWavDataUri(false);
+        if (!alarmWavUri) alarmWavUri = generateToneWavDataUri(true);
+
+        const bgAudio = document.getElementById('bgKeepAliveAudio');
+        if (bgAudio) {
+          if (!bgAudio.src) bgAudio.src = silentWavUri;
+          bgAudio.volume = 0.02;
+          bgAudio.play().catch(() => {});
+        }
+        const alarmAudio = document.getElementById('bgAlarmAudio');
+        if (alarmAudio && !alarmAudio.src) {
+          alarmAudio.src = alarmWavUri;
+          alarmAudio.volume = 1.0;
+        }
+        updateAndroidMediaSessionCard(false);
+      } catch (e) {}
+    }
+
+    function stopBackgroundAudioKeepAlive() {
+      try {
+        const bgAudio = document.getElementById('bgKeepAliveAudio');
+        if (bgAudio) bgAudio.pause();
+      } catch (e) {}
+    }
+
+    function playBackgroundWavAlarm() {
+      try {
+        if (!alarmWavUri) alarmWavUri = generateToneWavDataUri(true);
+        const alarmAudio = document.getElementById('bgAlarmAudio');
+        if (alarmAudio) {
+          alarmAudio.src = alarmWavUri;
+          alarmAudio.currentTime = 0;
+          alarmAudio.volume = 1.0;
+          alarmAudio.play().catch(() => {});
+        }
+        if (navigator.vibrate) {
+          navigator.vibrate([300, 150, 300, 150, 400]);
+        }
+      } catch (e) {}
+    }
+
+    function updateAndroidMediaSessionCard(isAlertNow) {
+      if (!('mediaSession' in navigator)) return;
+      try {
+        const metrics = calculateWaterMetrics();
+        const remMins = Math.max(0, Math.ceil(getIntervalRemainingSeconds() / 60));
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: isAlertNow
+            ? `⏰ DRINK ${metrics.perIntervalMl} ML OF WATER NOW!`
+            : `Next Drink: ${metrics.perIntervalMl} ml in ${remMins} min`,
+          artist: `HydroPulse • Today: ${state.currentIntakeMl} / ${metrics.totalDailyMl} ml`,
+          album: `Interval: Every ${metrics.intervalMins} mins`
+        });
+        navigator.mediaSession.setActionHandler('play', () => {
+          addWaterIntake(metrics.perIntervalMl);
+        });
+        navigator.mediaSession.setActionHandler('pause', () => {
+          addWaterIntake(metrics.perIntervalMl);
+        });
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+          addWaterIntake(metrics.perIntervalMl);
+        });
+      } catch (e) {}
+    }
+
+    function showPermissionDiagnosticModal(headline, body, workaroundText) {
+      document.getElementById('permModalHeadline').textContent = headline;
+      document.getElementById('permModalBody').textContent = body;
+      document.getElementById('permModalWorkaroundText').textContent = workaroundText;
+      document.getElementById('permissionGuideModal').classList.remove('hidden');
+    }
+
+    // =========================================================================
+    // PUSH NOTIFICATIONS & BACKGROUND EXECUTION ENGINE (Native Bridge + Web + Audio)
+    // =========================================================================
+    async function requestPhoneNotificationPermission() {
+      // 1. Check if running inside our Native Android APK Bridge
+      if (window.AndroidBridge && typeof window.AndroidBridge.requestNotificationPermission === 'function') {
+        try {
+          window.AndroidBridge.requestNotificationPermission();
+          state.pushNotificationsEnabled = true;
+          state.backgroundModeEnabled = true;
+          startBackgroundAudioAndMediaSession();
+          syncScheduleWithServiceWorker();
+          renderUI();
+          showStatusToast('✅', 'Requested Android OS Notification Permission!');
+          return true;
+        } catch (e) {}
+      }
+
+      // 2. Check standard Web Notification API (Chrome / PWABuilder TWA APK)
+      if ('Notification' in window) {
+        try {
+          const perm = await Notification.requestPermission();
+          if (perm === 'granted') {
+            state.pushNotificationsEnabled = true;
+            startBackgroundAudioAndMediaSession();
+            syncScheduleWithServiceWorker();
+            renderUI();
+            showStatusToast('✅', 'Phone notification permission granted!');
+            dispatchSystemNotification(
+              'HydroPulse Notifications Enabled',
+              `You'll receive a reminder every ${state.reminderIntervalMins} minutes to stay hydrated.`
+            );
+            return true;
+          } else {
+            state.pushNotificationsEnabled = false;
+            renderUI();
+            showPermissionDiagnosticModal(
+              'Notification Permission Denied on Phone',
+              'Android blocked notifications for this app. Open your phone Settings → Apps → HydroPulse → Notifications and switch Allow Notifications ON.',
+              'We also enabled Background Audio + Media Bar mode so your phone still chimes when minimized!'
+            );
+            return false;
+          }
+        } catch (e) {}
+      }
+
+      // 3. Running inside WebIntoApp basic WebView (where window.Notification is missing)
+      state.pushNotificationsEnabled = true;
+      state.backgroundModeEnabled = true;
+      startBackgroundAudioAndMediaSession();
+      renderUI();
+      showPermissionDiagnosticModal(
+        'Why App Info Shows No Notification Permission',
+        'WebIntoApp uses a basic Android WebView that does not include the Android 13 POST_NOTIFICATIONS permission in App Info unless compiled with the Native Android Project.',
+        'To make sure your reminders work right now when minimized, we just activated the Background Audio Alarm + Lock-Screen Media Notification Bar!'
+      );
+      return true;
+    }
+
+    async function enableBackgroundUsageMode() {
+      state.backgroundModeEnabled = !state.backgroundModeEnabled;
+      if (state.backgroundModeEnabled) {
+        // 1. Native Android Battery Optimization Exemption Popup if in Native APK
+        if (window.AndroidBridge && typeof window.AndroidBridge.requestBackgroundPermission === 'function') {
+          try {
+            window.AndroidBridge.requestBackgroundPermission();
+          } catch (e) {}
+        }
+        // 2. Request Screen WakeLock when supported
+        if ('wakeLock' in navigator) {
+          try {
+            wakeLockSentinel = await navigator.wakeLock.request('screen');
+          } catch (e) {}
+        }
+        // 3. Request Persistent Storage
+        if (navigator.storage && navigator.storage.persist) {
+          try {
+            await navigator.storage.persist();
+          } catch (e) {}
+        }
+        // 4. Start HTML5 Background Audio Keep-Alive + MediaSession Notification Shade Card
+        initAudio();
+        startBackgroundAudioAndMediaSession();
+        syncScheduleWithServiceWorker();
+        showStatusToast('⚡', 'Background Audio Keep-Alive & Media Bar active!');
+      } else {
+        stopBackgroundAudioKeepAlive();
+        if (wakeLockSentinel) {
+          try {
+            await wakeLockSentinel.release();
+          } catch (e) {}
+          wakeLockSentinel = null;
+        }
+        showStatusToast('⏸️', 'Background keep-alive turned off.');
+      }
+      renderUI();
+    }
+
+    function dispatchSystemNotification(title, bodyText) {
+      if (!state.pushNotificationsEnabled) return;
+      try {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready
+            .then((reg) => {
+              if (reg && reg.showNotification) {
+                reg.showNotification(title, {
+                  body: bodyText,
+                  icon: 'icon-192.png',
+                  badge: 'icon-192.png',
+                  vibrate: [200, 100, 200],
+                  tag: 'hydropulse-water-reminder',
+                  renotify: true
+                });
+              } else if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, { body: bodyText });
+              }
+            })
+            .catch(() => {
+              if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, { body: bodyText });
+              }
+            });
+        } else if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(title, { body: bodyText });
+        }
+      } catch (e) {}
+    }
+
+    function syncScheduleWithServiceWorker() {
+      const metrics = calculateWaterMetrics();
+      // 1. If Native Android Bridge is present, schedule real OS AlarmManager broadcast (fires even when app is closed!)
+      if (window.AndroidBridge && typeof window.AndroidBridge.scheduleNativeReminder === 'function') {
+        try {
+          if (state.pushNotificationsEnabled && state.isTrackerRunning) {
+            const delayMs = Math.max(1000, state.nextReminderTimestampMs - Date.now());
+            window.AndroidBridge.scheduleNativeReminder(
+              delayMs,
+              metrics.intervalMins,
+              `HydroPulse • ${metrics.intervalMins}-Min Water Reminder`,
+              `Time to drink ${metrics.perIntervalMl} ml of water! Daily target: ${metrics.totalDailyMl} ml.`
+            );
+          } else if (typeof window.AndroidBridge.cancelNativeReminder === 'function') {
+            window.AndroidBridge.cancelNativeReminder();
+          }
+        } catch (e) {}
+      }
+      try {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          const metrics = calculateWaterMetrics();
+          navigator.serviceWorker.controller.postMessage({
+            type: 'SCHEDULE_REMINDER',
+            enabled: state.pushNotificationsEnabled && state.isTrackerRunning,
+            nextReminderTimestampMs: state.nextReminderTimestampMs,
+            intervalMins: metrics.intervalMins,
+            perIntervalMl: metrics.perIntervalMl,
+            totalDailyMl: metrics.totalDailyMl
+          });
+        }
+      } catch (e) {}
+    }
+
+    // Dedicated inline Web Worker so timer ticks are not throttled when minimized
+    function startBackgroundTickWorker() {
+      try {
+        const workerCode = `
+          let timerId = null;
+          self.onmessage = function(e) {
+            if (e.data === 'START') {
+              if (timerId) clearInterval(timerId);
+              timerId = setInterval(() => {
+                self.postMessage('TICK');
+              }, 1000);
+            }
+          };
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const worker = new Worker(URL.createObjectURL(blob));
+        worker.onmessage = () => {
+          handleMasterSecondTick();
+        };
+        worker.postMessage('START');
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // =========================================================================
+    // UI RENDER & SYNCHRONIZATION
+    // =========================================================================
+    function showStatusToast(icon, text) {
+      const toast = document.getElementById('statusToast');
+      const iconEl = document.getElementById('statusToastIcon');
+      const textEl = document.getElementById('statusToastText');
+      if (!toast || !iconEl || !textEl) return;
+      iconEl.textContent = icon;
+      textEl.textContent = text;
+      toast.classList.remove('hidden');
+      clearTimeout(window.__statusToastTimeout);
+      window.__statusToastTimeout = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 2500);
+    }
+
+    function formatSecondsMMSS(totalSec) {
+      const s = Math.max(0, Math.floor(totalSec));
+      const m = Math.floor(s / 60);
+      const rem = s % 60;
+      return `${String(m).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
+    }
+
+    function formatSecondsHHMMSS(totalSec) {
+      const s = Math.max(0, Math.floor(totalSec));
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const rem = s % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
+    }
+
+    function renderUI() {
+      const metrics = calculateWaterMetrics();
+      const pct = Math.min(100, Math.round((state.currentIntakeMl / metrics.totalDailyMl) * 100));
+      const remainingMl = Math.max(0, metrics.totalDailyMl - state.currentIntakeMl);
+      const remIntervalSec = getIntervalRemainingSeconds();
+      const remSessionSec = getSessionRemainingSeconds();
+
+      // Sound icon
+      document.getElementById('soundIconOn').classList.toggle('hidden', !state.soundEnabled);
+      document.getElementById('soundIconOff').classList.toggle('hidden', state.soundEnabled);
+
+      // Header substatus
+      document.getElementById('headerSubStatus').textContent = `${metrics.intervalMins}-min smart hydration • Android`;
+
+      // Top summary cards
+      document.getElementById('streakCountText').textContent = state.streakDays;
+      document.getElementById('bestStreakText').textContent = Math.max(state.bestStreak, state.streakDays);
+      document.getElementById('perIntervalHeaderLabel').textContent = `Per ${metrics.intervalMins} Min`;
+      document.getElementById('perIntervalAmountText').textContent = metrics.perIntervalMl;
+      document.getElementById('miniCityLabel').textContent = state.shortCity || 'Local';
+      document.getElementById('miniTempText').textContent = state.tempC;
+
+      const weatherIcons = {
+        sunny: '☀️',
+        humid: '💧',
+        hot: '🔥',
+        pleasant: '⛅',
+        rainy: '🌧️',
+        cool: '❄️'
+      };
+      document.getElementById('miniWeatherIcon').textContent = weatherIcons[state.weatherCondition] || '☀️';
+
+      // Tank overlay
+      const boostSign = metrics.weatherTotalBoost >= 0 ? '+' : '';
+      document.getElementById('weatherAdjustmentBadge').textContent = `${boostSign}${metrics.weatherTotalBoost} ml weather adjust`;
+      document.getElementById('currentIntakeText').textContent = state.currentIntakeMl;
+      document.getElementById('dailyTargetText').textContent = metrics.totalDailyMl;
+
+      if (remainingMl === 0 && state.currentIntakeMl > 0) {
+        document.getElementById('remainingStatusText').textContent = `🎉 Daily Goal Achieved! (${pct}% Complete)`;
+      } else {
+        document.getElementById('remainingStatusText').textContent = `${remainingMl.toLocaleString()} ml remaining today • ${pct}% Complete`;
+      }
+
+      document.getElementById('nextSipHeaderLabel').textContent = `Next ${metrics.intervalMins}-Min Reminder`;
+      document.getElementById('recommendedSipInline').textContent = `${metrics.perIntervalMl} ml`;
+      document.getElementById('recommendedBtnAmount').textContent = metrics.perIntervalMl;
+      document.getElementById('countdownTimerText').textContent = formatSecondsMMSS(remIntervalSec);
+
+      // Undo button state
+      document.getElementById('undoLastDrinkBtn').disabled = state.drinkLogs.length === 0;
+
+      // Drink logs
+      const logList = document.getElementById('drinkHistoryList');
+      document.getElementById('logCountBadge').textContent = state.drinkLogs.length;
+      if (state.drinkLogs.length === 0) {
+        document.getElementById('lastDrinkTimeText').textContent = 'No drinks logged yet today';
+        logList.innerHTML = `<div class="text-xs text-slate-400 py-1">Tap any cup size above (100 ml – 1000 ml) to log your first drink!</div>`;
+      } else {
+        const latest = state.drinkLogs[state.drinkLogs.length - 1];
+        document.getElementById('lastDrinkTimeText').textContent = `Last: +${latest.amount} ml at ${latest.time}`;
+        logList.innerHTML = state.drinkLogs
+          .slice()
+          .reverse()
+          .map(
+            (item) => `
+            <div class="shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 text-xs font-bold">
+              <span class="text-sky-500">💧</span>
+              <span>+${item.amount} ml</span>
+              <span class="text-[10px] text-slate-400 font-medium">${item.time}</span>
+            </div>`
+          )
+          .join('');
+      }
+
+      // Body Metrics & Weather Outputs
+      document.getElementById('baseWaterOutputBadge').textContent = `Base: ${metrics.baseMl.toLocaleString()} ml`;
+      document.getElementById('tempValueLabel').textContent = state.tempC;
+      document.getElementById('weatherBoostSummary').textContent = `${boostSign}${metrics.weatherTotalBoost} ml weather impact`;
+      document.getElementById('gpsCoordStatus').textContent = state.locationPermissionGranted
+        ? `GPS: ${Number(state.lat).toFixed(2)}° N, ${Number(state.lon).toFixed(2)}° E`
+        : 'GPS: Optional (Not Enabled)';
+
+      // Schedule & Interval Buttons (Main + Onboarding)
+      document.getElementById('activeWindowHoursBadge').textContent = `${metrics.activeHours.toFixed(1)}h Active (${metrics.intervalSlots} slots)`;
+      document.getElementById('formulaInlineBreakdown').textContent = `${metrics.totalDailyMl} ml ÷ ${metrics.intervalSlots} slots = ${metrics.perIntervalMl} ml / ${metrics.intervalMins} min`;
+      document.getElementById('mainIntervalQuotaBadge').textContent = `${metrics.perIntervalMl} ml / ${metrics.intervalMins} min`;
+      document.getElementById('onboardIntervalSipPreview').textContent = `${metrics.perIntervalMl} ml / ${metrics.intervalMins} min`;
+      document.getElementById('onboardBasePreviewText').textContent = `${metrics.baseMl.toLocaleString()} ml / day`;
+      document.getElementById('onboardFinalTargetPreview').textContent = `${metrics.totalDailyMl.toLocaleString()} ml`;
+      document.getElementById('onboardWeatherCityLabel').textContent = state.address;
+      document.getElementById('onboardWeatherTempLabel').textContent = `${state.tempC}°C • ${state.weatherCondition.toUpperCase()}`;
+      document.getElementById('sessionTimerDisplay').textContent = formatSecondsHHMMSS(remSessionSec);
+
+      document.querySelectorAll('.interval-choice-btn').forEach((btn) => {
+        const mins = Number(btn.getAttribute('data-interval-mins'));
+        if (mins === metrics.intervalMins) {
+          btn.className = 'interval-choice-btn py-2 px-2 rounded-xl text-xs font-bold border border-sky-600 bg-sky-600 text-white shadow-sm transition';
+        } else {
+          btn.className = 'interval-choice-btn py-2 px-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-sky-400 transition';
+        }
+      });
+
+      // Push Notification & Background buttons state
+      const mainPushBtn = document.getElementById('enableAndroidNotifBtn');
+      const onboardPushBtn = document.getElementById('onboardPushToggleBtn');
+      if (state.pushNotificationsEnabled) {
+        mainPushBtn.className = 'px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold active:scale-95 transition';
+        mainPushBtn.textContent = 'ON (Enabled ✓)';
+        onboardPushBtn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 text-white transition';
+        onboardPushBtn.textContent = 'ON ✓';
+      } else {
+        mainPushBtn.className = 'px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold active:scale-95 transition';
+        mainPushBtn.textContent = 'OFF (Tap to Enable)';
+        onboardPushBtn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 transition';
+        onboardPushBtn.textContent = 'OFF';
+      }
+
+      const mainBgBtn = document.getElementById('toggleBackgroundModeBtn');
+      const onboardBgBtn = document.getElementById('onboardBgPermBtn');
+      if (state.backgroundModeEnabled) {
+        mainBgBtn.className = 'px-3 py-1.5 rounded-xl bg-sky-600 text-white text-xs font-bold active:scale-95 transition';
+        mainBgBtn.textContent = 'Active in Background ✓';
+        onboardBgBtn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-600 text-white transition';
+        onboardBgBtn.textContent = 'Granted ✓';
+      } else {
+        mainBgBtn.className = 'px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold active:scale-95 transition';
+        mainBgBtn.textContent = 'Grant Background Run';
+        onboardBgBtn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 transition';
+        onboardBgBtn.textContent = 'Grant';
+      }
+
+      // Mode buttons styling
+      document.querySelectorAll('.track-mode-btn').forEach((btn) => {
+        const mode = btn.getAttribute('data-track-mode');
+        if (mode === state.trackingMode) {
+          btn.className = 'track-mode-btn py-2 px-2 rounded-xl text-xs font-bold transition bg-sky-600 text-white shadow-sm';
+        } else {
+          btn.className = 'track-mode-btn py-2 px-2 rounded-xl text-xs font-bold transition text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800';
+        }
+      });
+
+      // Tracker Active / Sleeping / Paused status
+      const activeBadge = document.getElementById('trackerActiveBadge');
+      const toggleRunBtn = document.getElementById('toggleTrackerRunBtn');
+      const stateHeadline = document.getElementById('trackerStateHeadline');
+      const pulseDot = document.getElementById('timerPulseDot');
+
+      if (state.isTrackerRunning) {
+        activeBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30';
+        activeBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Active`;
+        toggleRunBtn.className = 'px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold active:scale-95 transition';
+        toggleRunBtn.textContent = '⏸️ Pause Tracker';
+        stateHeadline.textContent = `Tracker Running (${metrics.intervalMins}-Min Interval Active)`;
+        pulseDot.classList.remove('bg-slate-400');
+        pulseDot.classList.add('bg-sky-500', 'pulse-indicator');
+      } else {
+        activeBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30';
+        activeBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Paused / Sleep`;
+        toggleRunBtn.className = 'px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold active:scale-95 transition';
+        toggleRunBtn.textContent = '▶️ Start Tracker';
+        stateHeadline.textContent = 'Tracker Paused (Sleeping / Manual Pause)';
+        pulseDot.classList.remove('bg-sky-500', 'pulse-indicator');
+        pulseDot.classList.add('bg-slate-400');
+      }
+
+      // Weekly streak grid
+      const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Today'];
+      const streakGrid = document.getElementById('weeklyStreakGrid');
+      const todayDone = state.currentIntakeMl >= metrics.totalDailyMl && metrics.totalDailyMl > 0;
+      const historyCopy = state.weekHistory.slice(0, 6).concat([todayDone]);
+
+      streakGrid.innerHTML = dayLabels
+        .map((d, idx) => {
+          const hit = historyCopy[idx];
+          return `
+            <div class="flex flex-col items-center gap-1 p-1.5 rounded-xl ${idx === 6 ? 'bg-sky-500/10 border border-sky-500/30' : ''}">
+              <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400">${d}</span>
+              <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                hit
+                  ? 'bg-emerald-500 text-white shadow-sm'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+              }">
+                ${hit ? '✓' : '0'}
+              </span>
+            </div>
+          `;
+        })
+        .join('');
+
+      // Punishment Preview Card
+      document.getElementById('punishmentAssignTimeText').textContent = state.wakeStartTime;
+      const pItem = state.pendingPunishment || PUNISHMENT_POOL[state.previewPunishmentIndex % PUNISHMENT_POOL.length];
+      document.getElementById('cardPunishmentEmoji').textContent = pItem.emoji;
+      document.getElementById('cardPunishmentText').textContent = pItem.text;
+
+      const statusPill = document.getElementById('punishmentStatusPill');
+      if (state.pendingPunishment) {
+        statusPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30';
+        statusPill.textContent = '⚠️ Penalty Due Today';
+      } else {
+        statusPill.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
+        statusPill.textContent = '✓ Clear Today';
+      }
+
+      saveState();
+    }
+
+    // =========================================================================
+    // WATER LOGGING & REMINDER HANDLERS
+    // =========================================================================
+    function addWaterIntake(amountMl) {
+      const prevMetrics = calculateWaterMetrics();
+      const wasBelowGoal = state.currentIntakeMl < prevMetrics.totalDailyMl;
+
+      state.currentIntakeMl += amountMl;
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      state.drinkLogs.push({ time: timeStr, amount: amountMl });
+
+      // Reset persistent interval timestamp after logging a drink
+      resetIntervalTimerToFull();
+
+      waveBoostVelocity = 14;
+
+      if (wasBelowGoal && state.currentIntakeMl >= prevMetrics.totalDailyMl) {
+        state.streakDays += 1;
+        state.bestStreak = Math.max(state.bestStreak, state.streakDays);
+        playGoalAchievedSound();
+        showStatusToast('🎉', `Daily Target of ${prevMetrics.totalDailyMl} ml Achieved! Streak: ${state.streakDays}🔥`);
+      } else {
+        playWaterPourSound(amountMl);
+        showStatusToast('💧', `Added +${amountMl} ml of water!`);
+      }
+
+      renderUI();
+    }
+
+    function triggerIntervalReminder() {
+      const metrics = calculateWaterMetrics();
+      playReminderChime();
+      playBackgroundWavAlarm();
+      updateAndroidMediaSessionCard(true);
+
+      const toast = document.getElementById('reminderToast');
+      document.getElementById('toastIntervalBadge').textContent = `${metrics.intervalMins}-Min Hydration Alert`;
+      document.getElementById('toastTitle').textContent = `Time to drink ${metrics.perIntervalMl} ml of water!`;
+      document.getElementById('toastSubtitle').textContent = `${metrics.intervalMins}-min quota (${metrics.totalDailyMl} ml ÷ ${metrics.intervalSlots} slots over ${metrics.activeHours.toFixed(1)}h)`;
+      toast.classList.remove('hidden');
+
+      dispatchSystemNotification(
+        `HydroPulse • ${metrics.intervalMins}-Min Water Reminder`,
+        `Time to drink ${metrics.perIntervalMl} ml of water! Daily target: ${metrics.totalDailyMl} ml.`
+      );
+    }
+
+    function triggerMorningPunishmentModal() {
+      const randomIdx = Math.floor(Math.random() * PUNISHMENT_POOL.length);
+      state.previewPunishmentIndex = randomIdx;
+      const chosen = PUNISHMENT_POOL[randomIdx];
+      state.pendingPunishment = chosen;
+
+      document.getElementById('punishmentWakeTimeBadge').textContent = `Start Time: ${state.wakeStartTime}`;
+      document.getElementById('punishmentTaskEmoji').textContent = chosen.emoji;
+      document.getElementById('punishmentTaskTitle').textContent = chosen.text;
+      document.getElementById('punishmentModal').classList.remove('hidden');
+
+      playPunishmentAlertSound();
+      renderUI();
+    }
+
+    // =========================================================================
+    // 60FPS SMOOTH CANVAS LIQUID WAVE RENDERER
+    // =========================================================================
+    const canvas = document.getElementById('waterWaveCanvas');
+    const ctx = canvas.getContext('2d');
+    let wavePhase1 = 0;
+    let wavePhase2 = Math.PI;
+    let displayedFillRatio = 0.04;
+    let waveBoostVelocity = 0;
+
+    function resizeCanvas() {
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function animateLiquidWaves() {
+      const rect = canvas.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+
+      const metrics = calculateWaterMetrics();
+      const rawRatio = state.currentIntakeMl / metrics.totalDailyMl;
+      const targetRatio = state.currentIntakeMl === 0 ? 0.04 : Math.min(0.94, Math.max(0.08, rawRatio));
+
+      displayedFillRatio += (targetRatio - displayedFillRatio) * 0.08;
+      if (waveBoostVelocity > 0.1) {
+        waveBoostVelocity *= 0.92;
+      } else {
+        waveBoostVelocity = 0;
+      }
+
+      ctx.clearRect(0, 0, width, height);
+
+      const baseWaterY = height * (1 - displayedFillRatio);
+      const amp1 = 6 + waveBoostVelocity * 0.6;
+      const amp2 = 4 + waveBoostVelocity * 0.4;
+
+      ctx.beginPath();
+      ctx.moveTo(0, height);
+      for (let x = 0; x <= width; x += 8) {
+        const y = baseWaterY + Math.sin((x * 0.018) + wavePhase2) * amp2;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(width, height);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.30)';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(0, height);
+      for (let x = 0; x <= width; x += 6) {
+        const y = baseWaterY + Math.sin((x * 0.022) + wavePhase1) * amp1;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(width, height);
+      ctx.closePath();
+
+      const grad = ctx.createLinearGradient(0, baseWaterY, 0, height);
+      grad.addColorStop(0, 'rgba(14, 165, 233, 0.52)');
+      grad.addColorStop(1, 'rgba(2, 132, 199, 0.72)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      wavePhase1 += 0.045 + waveBoostVelocity * 0.008;
+      wavePhase2 -= 0.032 + waveBoostVelocity * 0.005;
+
+      requestAnimationFrame(animateLiquidWaves);
+    }
+
+    // =========================================================================
+    // GPS & LIVE WEATHER / ADDRESS LOOKUP (Explicit Permission Prompt)
+    // =========================================================================
+    async function fetchWeatherByCoords(lat, lon, customLabel) {
+      const gpsBtnText = document.getElementById('gpsBtnText');
+      try {
+        gpsBtnText.textContent = 'Syncing...';
+        const weatherResp = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code`
+        );
+        if (weatherResp.ok) {
+          const data = await weatherResp.json();
+          if (data && data.current) {
+            const temp = Math.round(data.current.temperature_2m);
+            const hum = Math.round(data.current.relative_humidity_2m || 60);
+            const code = data.current.weather_code || 0;
+
+            state.tempC = Math.min(48, Math.max(5, temp));
+            state.humidity = hum;
+            if (temp >= 35) state.weatherCondition = 'hot';
+            else if (code >= 51 && code <= 99) state.weatherCondition = 'rainy';
+            else if (hum >= 75 && temp >= 28) state.weatherCondition = 'humid';
+            else if (temp <= 16) state.weatherCondition = 'cool';
+            else if (temp >= 28) state.weatherCondition = 'sunny';
+            else state.weatherCondition = 'pleasant';
+
+            document.getElementById('tempSlider').value = state.tempC;
+            document.getElementById('weatherConditionSelect').value = state.weatherCondition;
+          }
+        }
+      } catch (e) {} finally {
+        gpsBtnText.textContent = 'Use GPS';
+      }
+
+      if (customLabel) {
+        state.address = customLabel;
+        state.shortCity = customLabel.split(',')[0].trim();
+        document.getElementById('addressSearchInput').value = customLabel;
+      }
+      renderUI();
+    }
+
+    function handleGpsDetection(fromOnboarding = false) {
+      const gpsBtnText = document.getElementById('gpsBtnText');
+      const onboardLocStatus = document.getElementById('onboardLocStatusText');
+      if (window.AndroidBridge && typeof window.AndroidBridge.requestLocationPermission === 'function') {
+        try {
+          window.AndroidBridge.requestLocationPermission();
+        } catch (e) {}
+      }
+      if (!('geolocation' in navigator)) {
+        state.locationPermissionGranted = false;
+        renderUI();
+        showPermissionDiagnosticModal(
+          'GPS Not Enabled in APK Wrapper',
+          'Your current APK wrapper did not enable the Android Geolocation permission in its manifest.',
+          'You can type any city or tap a Quick Map Pin below to sync live weather without needing GPS!'
+        );
+        return;
+      }
+      gpsBtnText.textContent = 'Locating...';
+      if (onboardLocStatus && fromOnboarding) {
+        onboardLocStatus.textContent = 'Requesting location permission from your phone...';
+      }
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          state.locationPermissionGranted = true;
+          state.lat = pos.coords.latitude;
+          state.lon = pos.coords.longitude;
+          let resolvedAddress = `${state.lat.toFixed(2)}°N, ${state.lon.toFixed(2)}°E`;
+          try {
+            const rev = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${state.lat}&lon=${state.lon}`
+            );
+            if (rev.ok) {
+              const revData = await rev.json();
+              const city =
+                revData.address?.city ||
+                revData.address?.town ||
+                revData.address?.municipality ||
+                revData.address?.state_district ||
+                'My GPS Location';
+              const stateName = revData.address?.state || '';
+              resolvedAddress = stateName ? `${city}, ${stateName}` : city;
+            }
+          } catch (e) {}
+          await fetchWeatherByCoords(state.lat, state.lon, resolvedAddress);
+          if (onboardLocStatus) {
+            onboardLocStatus.textContent = `✅ Location granted! Weather synced for ${state.shortCity} (${state.tempC}°C).`;
+          }
+          showStatusToast('📍', `GPS Weather synced for ${state.shortCity} (${state.tempC}°C)`);
+        },
+        (err) => {
+          state.locationPermissionGranted = false;
+          gpsBtnText.textContent = 'Use GPS';
+          if (onboardLocStatus && fromOnboarding) {
+            onboardLocStatus.textContent = '⚠️ Phone Location Permission not granted in App Info (or GPS is off). Using manual city weather instead.';
+          }
+          renderUI();
+          showPermissionDiagnosticModal(
+            'Location Permission Missing in Phone App Info',
+            'Android blocked GPS access because the WebIntoApp APK was compiled without the Location permission enabled (or Location is turned off).',
+            'To fix in WebIntoApp: enable "Geolocation / GPS" under Permissions before building, or use our Native Android APK builder!'
+          );
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+      );
+    }
+
+    async function handleAddressWeatherSearch() {
+      const query = document.getElementById('addressSearchInput').value.trim();
+      if (!query) {
+        showStatusToast('⚠️', 'Please enter a city or address first.');
+        return;
+      }
+      state.address = query;
+      state.shortCity = query.split(',')[0].trim();
+
+      try {
+        const geoResp = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`
+        );
+        if (geoResp.ok) {
+          const results = await geoResp.json();
+          if (results && results.length > 0) {
+            state.lat = parseFloat(results[0].lat);
+            state.lon = parseFloat(results[0].lon);
+            await fetchWeatherByCoords(state.lat, state.lon, query);
+            showStatusToast('🗺️', `Weather updated for ${state.shortCity}: ${state.tempC}°C`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      const lower = query.toLowerCase();
+      if (lower.includes('delhi') || lower.includes('rajasthan') || lower.includes('chennai')) {
+        state.tempC = 36;
+        state.weatherCondition = 'hot';
+      } else if (lower.includes('darjeeling') || lower.includes('shimla') || lower.includes('manali')) {
+        state.tempC = 14;
+        state.weatherCondition = 'cool';
+      } else if (lower.includes('mumbai') || lower.includes('kolkata') || lower.includes('khardaha')) {
+        state.tempC = 31;
+        state.weatherCondition = 'humid';
+      } else if (lower.includes('bengaluru') || lower.includes('pune')) {
+        state.tempC = 25;
+        state.weatherCondition = 'pleasant';
+      }
+      document.getElementById('tempSlider').value = state.tempC;
+      document.getElementById('weatherConditionSelect').value = state.weatherCondition;
+      renderUI();
+      showStatusToast('🗺️', `Address synced: ${state.shortCity} (${state.tempC}°C)`);
+    }
+
+    // =========================================================================
+    // ONBOARDING WIZARD NAVIGATION (Steps 1 -> 5, with Skip to Next on all)
+    // =========================================================================
+    function showOnboardingStep(stepNum) {
+      currentOnboardStep = stepNum;
+      for (let i = 1; i <= 5; i++) {
+        const el = document.getElementById(`onboardStep${i}`);
+        if (el) {
+          el.classList.toggle('hidden', i !== stepNum);
+        }
+      }
+      const dotsContainer = document.getElementById('onboardProgressDots');
+      if (dotsContainer) {
+        Array.from(dotsContainer.children).forEach((dot, idx) => {
+          if (idx + 1 === stepNum) {
+            dot.className = 'w-6 h-1.5 rounded-full bg-sky-500 transition-all';
+          } else if (idx + 1 < stepNum) {
+            dot.className = 'w-2.5 h-1.5 rounded-full bg-sky-400/60 transition-all';
+          } else {
+            dot.className = 'w-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 transition-all';
+          }
+        });
+      }
+      const topSkip = document.getElementById('onboardTopSkipBtn');
+      if (topSkip) {
+        topSkip.textContent = stepNum < 5 ? 'Skip to Next →' : 'Skip to App →';
+      }
+      renderUI();
+    }
+
+    function finishOnboarding() {
+      state.onboardingCompleted = true;
+      resetIntervalTimerToFull();
+      saveState();
+      document.getElementById('onboardingOverlay').classList.add('hidden');
+      renderUI();
+      setTimeout(resizeCanvas, 60);
+      showStatusToast('🚀', 'Welcome to HydroPulse! Your tracker is ready.');
+    }
+
+    // =========================================================================
+    // MASTER PERSISTENT 1-SECOND TICK LOOP
+    // =========================================================================
+    function handleMasterSecondTick() {
+      if (state.trackingMode === 'auto') {
+        const shouldRun = isWithinWakeSchedule();
+        if (shouldRun !== state.isTrackerRunning) {
+          state.isTrackerRunning = shouldRun;
+          if (shouldRun) {
+            resetIntervalTimerToFull();
+          }
+          renderUI();
+        }
+      }
+
+      if (!state.isTrackerRunning) return;
+
+      const nowMs = Date.now();
+      const remSec = Math.ceil((state.nextReminderTimestampMs - nowMs) / 1000);
+
+      if (remSec <= 0) {
+        const intervalMs = (Number(state.reminderIntervalMins) || 30) * 60 * 1000;
+        // Advance to next future slot cleanly even if app was closed for multiple intervals
+        while (state.nextReminderTimestampMs <= nowMs) {
+          state.nextReminderTimestampMs += intervalMs;
+        }
+        saveState();
+        syncScheduleWithServiceWorker();
+        triggerIntervalReminder();
+      }
+
+      if (state.trackingMode === 'timer') {
+        const sessRemSec = Math.ceil((state.sessionEndTimestampMs - nowMs) / 1000);
+        if (sessRemSec <= 0) {
+          state.isTrackerRunning = false;
+          state.pausedSessionRemainingSec = 0;
+          saveState();
+          renderUI();
+          showStatusToast('⏰', 'Custom tracking timer finished! Tracker paused.');
+        }
+      }
+
+      const curRem = getIntervalRemainingSeconds();
+      document.getElementById('countdownTimerText').textContent = formatSecondsMMSS(curRem);
+      document.getElementById('sessionTimerDisplay').textContent = formatSecondsHHMMSS(getSessionRemainingSeconds());
+      if (state.backgroundModeEnabled && curRem % 30 === 0) {
+        updateAndroidMediaSessionCard(false);
+      }
+    }
+
+    // =========================================================================
+    // INITIALIZATION & EVENT LISTENERS
+    // =========================================================================
+    function validateAndSyncBodyProfile() {
+      const ageVal = Number(document.getElementById('inputAge').value);
+      const heightVal = Number(document.getElementById('inputHeight').value);
+      const weightVal = Number(document.getElementById('inputWeight').value);
+      const msgEl = document.getElementById('profileValidationMsg');
+
+      if (!ageVal || ageVal < 5 || ageVal > 110 || !heightVal || heightVal < 80 || heightVal > 240 || !weightVal || weightVal < 20 || weightVal > 250) {
+        msgEl.classList.remove('hidden');
+        return;
+      }
+      msgEl.classList.add('hidden');
+      state.age = ageVal;
+      state.heightCm = heightVal;
+      state.weightKg = weightVal;
+      document.getElementById('onboardAge').value = ageVal;
+      document.getElementById('onboardHeight').value = heightVal;
+      document.getElementById('onboardWeight').value = weightVal;
+      renderUI();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      // 1. Animate Splash Screen for 1.7 seconds on every open
+      const splash = document.getElementById('appSplashScreen');
+      const splashBar = document.getElementById('splashProgressBar');
+      setTimeout(() => {
+        if (splashBar) splashBar.style.width = '100%';
+      }, 60);
+
+      setTimeout(() => {
+        if (splash) {
+          splash.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+          setTimeout(() => splash.classList.add('hidden'), 500);
+        }
+        // Show First-Time Onboarding if not completed yet
+        if (!state.onboardingCompleted) {
+          document.getElementById('onboardingOverlay').classList.remove('hidden');
+          showOnboardingStep(1);
+        }
+      }, 1700);
+
+      // Sync initial inputs
+      document.getElementById('inputAge').value = state.age;
+      document.getElementById('inputHeight').value = state.heightCm;
+      document.getElementById('inputWeight').value = state.weightKg;
+      document.getElementById('onboardAge').value = state.age;
+      document.getElementById('onboardHeight').value = state.heightCm;
+      document.getElementById('onboardWeight').value = state.weightKg;
+      document.getElementById('addressSearchInput').value = state.address;
+      document.getElementById('tempSlider').value = state.tempC;
+      document.getElementById('weatherConditionSelect').value = state.weatherCondition;
+      document.getElementById('wakeStartTimeInput').value = state.wakeStartTime;
+      document.getElementById('sleepEndTimeInput').value = state.sleepEndTime;
+      document.getElementById('onboardWakeTime').value = state.wakeStartTime;
+      document.getElementById('onboardSleepTime').value = state.sleepEndTime;
+
+      applyTheme(state.themePref);
+      resizeCanvas();
+      renderUI();
+      requestAnimationFrame(animateLiquidWaves);
+
+      window.addEventListener('resize', resizeCanvas);
+
+      // Resume / Visibility change check so timer updates immediately when returning to app
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          handleMasterSecondTick();
+          renderUI();
+        }
+      });
+
+      // Onboarding step controls
+      document.getElementById('onboardNext1Btn').addEventListener('click', () => showOnboardingStep(2));
+      document.getElementById('onboardNext2Btn').addEventListener('click', () => showOnboardingStep(3));
+      document.getElementById('onboardNext3Btn').addEventListener('click', () => {
+        state.age = Math.min(110, Math.max(5, Number(document.getElementById('onboardAge').value) || 25));
+        state.heightCm = Math.min(240, Math.max(80, Number(document.getElementById('onboardHeight').value) || 170));
+        state.weightKg = Math.min(250, Math.max(20, Number(document.getElementById('onboardWeight').value) || 65));
+        document.getElementById('inputAge').value = state.age;
+        document.getElementById('inputHeight').value = state.heightCm;
+        document.getElementById('inputWeight').value = state.weightKg;
+        renderUI();
+        showOnboardingStep(4);
+      });
+      document.getElementById('onboardNext4Btn').addEventListener('click', () => showOnboardingStep(5));
+      document.getElementById('onboardFinishBtn').addEventListener('click', finishOnboarding);
+
+      // Top & Bottom Skip to Next buttons on every onboarding step
+      document.getElementById('onboardTopSkipBtn').addEventListener('click', () => {
+        if (currentOnboardStep < 5) {
+          showOnboardingStep(currentOnboardStep + 1);
+        } else {
+          finishOnboarding();
+        }
+      });
+
+      document.querySelectorAll('.onboard-skip-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const step = Number(btn.getAttribute('data-skip-step'));
+          if (step < 5) {
+            showOnboardingStep(step + 1);
+          } else {
+            finishOnboarding();
+          }
+        });
+      });
+
+      document.querySelectorAll('.onboard-back-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const step = Number(btn.getAttribute('data-back-step'));
+          if (step > 1) showOnboardingStep(step - 1);
+        });
+      });
+
+      // Onboarding live inputs
+      ['onboardAge', 'onboardHeight', 'onboardWeight'].forEach((id) => {
+        document.getElementById(id).addEventListener('input', () => {
+          state.age = Math.min(110, Math.max(5, Number(document.getElementById('onboardAge').value) || 25));
+          state.heightCm = Math.min(240, Math.max(80, Number(document.getElementById('onboardHeight').value) || 170));
+          state.weightKg = Math.min(250, Math.max(20, Number(document.getElementById('onboardWeight').value) || 65));
+          document.getElementById('inputAge').value = state.age;
+          document.getElementById('inputHeight').value = state.heightCm;
+          document.getElementById('inputWeight').value = state.weightKg;
+          renderUI();
+        });
+      });
+
+      document.getElementById('onboardWakeTime').addEventListener('change', (e) => {
+        state.wakeStartTime = e.target.value || '07:00';
+        document.getElementById('wakeStartTimeInput').value = state.wakeStartTime;
+        renderUI();
+      });
+
+      document.getElementById('onboardSleepTime').addEventListener('change', (e) => {
+        state.sleepEndTime = e.target.value || '23:00';
+        document.getElementById('sleepEndTimeInput').value = state.sleepEndTime;
+        renderUI();
+      });
+
+      document.getElementById('onboardPushToggleBtn').addEventListener('click', async () => {
+        if (!state.pushNotificationsEnabled) {
+          await requestPhoneNotificationPermission();
+        } else {
+          state.pushNotificationsEnabled = false;
+          renderUI();
+          showStatusToast('🔕', 'Push notifications turned OFF.');
+        }
+      });
+
+      document.getElementById('onboardBgPermBtn').addEventListener('click', enableBackgroundUsageMode);
+
+      document.getElementById('onboardGrantLocationBtn').addEventListener('click', () => {
+        handleGpsDetection(true);
+      });
+
+      // Button in header to reopen Setup Wizard anytime
+      document.getElementById('openOnboardingWizardBtn').addEventListener('click', () => {
+        document.getElementById('onboardingOverlay').classList.remove('hidden');
+        showOnboardingStep(1);
+      });
+
+      // Interval Choice Buttons (15m / 30m / 60m) in both Onboarding and Main Page
+      document.querySelectorAll('.interval-choice-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const mins = Number(btn.getAttribute('data-interval-mins')) || 30;
+          state.reminderIntervalMins = mins;
+          resetIntervalTimerToFull();
+          renderUI();
+          const metrics = calculateWaterMetrics();
+          showStatusToast('⏱️', `Interval set to ${mins} mins (${metrics.perIntervalMl} ml per reminder)`);
+        });
+      });
+
+      // Theme buttons
+      document.getElementById('themeLightBtn').addEventListener('click', () => applyTheme('light'));
+      document.getElementById('themeDarkBtn').addEventListener('click', () => applyTheme('dark'));
+      document.getElementById('themeSystemBtn').addEventListener('click', () => applyTheme('system'));
+
+      // Sound toggle
+      document.getElementById('soundToggleBtn').addEventListener('click', () => {
+        state.soundEnabled = !state.soundEnabled;
+        if (state.soundEnabled) playWaterPourSound(150);
+        renderUI();
+        showStatusToast(state.soundEnabled ? '🔊' : '🔇', state.soundEnabled ? 'Water sound effects enabled' : 'Sound effects muted');
+      });
+
+      // One-tap drink preset buttons
+      document.querySelectorAll('.drink-preset-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const ml = Number(btn.getAttribute('data-drink-ml')) || 200;
+          addWaterIntake(ml);
+        });
+      });
+
+      document.getElementById('drinkRecommendedNowBtn').addEventListener('click', () => {
+        const metrics = calculateWaterMetrics();
+        addWaterIntake(metrics.perIntervalMl);
+      });
+
+      document.getElementById('undoLastDrinkBtn').addEventListener('click', () => {
+        if (state.drinkLogs.length > 0) {
+          const removed = state.drinkLogs.pop();
+          state.currentIntakeMl = Math.max(0, state.currentIntakeMl - removed.amount);
+          renderUI();
+          showStatusToast('↩️', `Removed last ${removed.amount} ml drink`);
+        }
+      });
+
+      document.getElementById('resetTodayIntakeBtn').addEventListener('click', () => {
+        state.currentIntakeMl = 0;
+        state.drinkLogs = [];
+        renderUI();
+        showStatusToast('🔄', "Today's water counter reset to 0 ml");
+      });
+
+      ['inputAge', 'inputHeight', 'inputWeight'].forEach((id) => {
+        document.getElementById(id).addEventListener('input', validateAndSyncBodyProfile);
+      });
+
+      document.querySelectorAll('.step-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const targetId = btn.getAttribute('data-step-target');
+          const step = Number(btn.getAttribute('data-step')) || 1;
+          const inputEl = document.getElementById(targetId);
+          if (inputEl) {
+            inputEl.value = Number(inputEl.value || 0) + step;
+            validateAndSyncBodyProfile();
+          }
+        });
+      });
+
+      document.getElementById('detectGpsBtn').addEventListener('click', () => handleGpsDetection(false));
+      document.getElementById('fetchAddressWeatherBtn').addEventListener('click', handleAddressWeatherSearch);
+      document.getElementById('addressSearchInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleAddressWeatherSearch();
+      });
+
+      document.querySelectorAll('.city-preset-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const city = btn.getAttribute('data-city');
+          const temp = Number(btn.getAttribute('data-temp'));
+          const cond = btn.getAttribute('data-cond');
+          const hum = Number(btn.getAttribute('data-hum'));
+
+          state.address = city;
+          state.shortCity = city.split(',')[0].trim();
+          state.tempC = temp;
+          state.weatherCondition = cond;
+          state.humidity = hum;
+
+          document.getElementById('addressSearchInput').value = city;
+          document.getElementById('tempSlider').value = temp;
+          document.getElementById('weatherConditionSelect').value = cond;
+          renderUI();
+          showStatusToast('📍', `Switched to ${city} (${temp}°C)`);
+        });
+      });
+
+      document.getElementById('tempSlider').addEventListener('input', (e) => {
+        state.tempC = Number(e.target.value);
+        renderUI();
+      });
+
+      document.getElementById('weatherConditionSelect').addEventListener('change', (e) => {
+        state.weatherCondition = e.target.value;
+        renderUI();
+      });
+
+      document.querySelectorAll('.track-mode-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.trackingMode = btn.getAttribute('data-track-mode');
+          if (state.trackingMode === 'auto') {
+            state.isTrackerRunning = isWithinWakeSchedule();
+          } else if (state.trackingMode === 'timer') {
+            state.isTrackerRunning = true;
+            state.sessionEndTimestampMs = Date.now() + (Number(state.sessionDurationHrs) || 16) * 3600 * 1000;
+          }
+          resetIntervalTimerToFull();
+          renderUI();
+          showStatusToast('⚙️', `Switched to ${state.trackingMode.toUpperCase()} tracking mode`);
+        });
+      });
+
+      document.getElementById('wakeStartTimeInput').addEventListener('change', (e) => {
+        state.wakeStartTime = e.target.value || '07:00';
+        document.getElementById('onboardWakeTime').value = state.wakeStartTime;
+        renderUI();
+      });
+
+      document.getElementById('sleepEndTimeInput').addEventListener('change', (e) => {
+        state.sleepEndTime = e.target.value || '23:00';
+        document.getElementById('onboardSleepTime').value = state.sleepEndTime;
+        renderUI();
+      });
+
+      document.getElementById('preset15hBtn').addEventListener('click', () => {
+        state.wakeStartTime = '07:00';
+        state.sleepEndTime = '22:00';
+        document.getElementById('wakeStartTimeInput').value = '07:00';
+        document.getElementById('sleepEndTimeInput').value = '22:00';
+        document.getElementById('onboardWakeTime').value = '07:00';
+        document.getElementById('onboardSleepTime').value = '22:00';
+        state.sessionDurationHrs = 15;
+        state.sessionEndTimestampMs = Date.now() + 15 * 3600 * 1000;
+        renderUI();
+        showStatusToast('⏰', 'Set to 15-hour waking schedule');
+      });
+
+      document.getElementById('preset16hBtn').addEventListener('click', () => {
+        state.wakeStartTime = '07:00';
+        state.sleepEndTime = '23:00';
+        document.getElementById('wakeStartTimeInput').value = '07:00';
+        document.getElementById('sleepEndTimeInput').value = '23:00';
+        document.getElementById('onboardWakeTime').value = '07:00';
+        document.getElementById('onboardSleepTime').value = '23:00';
+        state.sessionDurationHrs = 16;
+        state.sessionEndTimestampMs = Date.now() + 16 * 3600 * 1000;
+        renderUI();
+        showStatusToast('⏰', 'Set to 16-hour waking schedule');
+      });
+
+      document.getElementById('toggleTrackerRunBtn').addEventListener('click', () => {
+        state.trackingMode = 'manual';
+        if (state.isTrackerRunning) {
+          state.pausedIntervalRemainingSec = getIntervalRemainingSeconds();
+          state.pausedSessionRemainingSec = getSessionRemainingSeconds();
+          state.isTrackerRunning = false;
+        } else {
+          const resumeIntSec = state.pausedIntervalRemainingSec != null
+            ? state.pausedIntervalRemainingSec
+            : (Number(state.reminderIntervalMins) || 30) * 60;
+          const resumeSessSec = state.pausedSessionRemainingSec != null
+            ? state.pausedSessionRemainingSec
+            : (Number(state.sessionDurationHrs) || 16) * 3600;
+          state.nextReminderTimestampMs = Date.now() + resumeIntSec * 1000;
+          state.sessionEndTimestampMs = Date.now() + resumeSessSec * 1000;
+          state.isTrackerRunning = true;
+        }
+        syncScheduleWithServiceWorker();
+        renderUI();
+        showStatusToast(state.isTrackerRunning ? '▶️' : '⏸️', state.isTrackerRunning ? 'Tracker resumed' : 'Tracker paused');
+      });
+
+      document.querySelectorAll('.session-dur-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const hrs = Number(btn.getAttribute('data-session-hrs')) || 16;
+          state.trackingMode = 'timer';
+          state.sessionDurationHrs = hrs;
+          state.sessionEndTimestampMs = Date.now() + hrs * 3600 * 1000;
+          state.isTrackerRunning = true;
+          renderUI();
+          showStatusToast('⏳', `Session timer set for ${hrs} hours`);
+        });
+      });
+
+      document.getElementById('test30MinAlertBtn').addEventListener('click', () => {
+        triggerIntervalReminder();
+      });
+
+      document.getElementById('enableAndroidNotifBtn').addEventListener('click', async () => {
+        if (!state.pushNotificationsEnabled) {
+          await requestPhoneNotificationPermission();
+        } else {
+          state.pushNotificationsEnabled = false;
+          renderUI();
+          showStatusToast('🔕', 'Push notifications turned OFF');
+        }
+      });
+
+      document.getElementById('toggleBackgroundModeBtn').addEventListener('click', enableBackgroundUsageMode);
+
+      document.getElementById('toastDrinkBtn').addEventListener('click', () => {
+        const metrics = calculateWaterMetrics();
+        addWaterIntake(metrics.perIntervalMl);
+        document.getElementById('reminderToast').classList.add('hidden');
+      });
+
+      document.getElementById('toastDismissBtn').addEventListener('click', () => {
+        document.getElementById('reminderToast').classList.add('hidden');
+      });
+
+      document.getElementById('simulateMissedDayBtn').addEventListener('click', () => {
+        state.streakDays = 0;
+        triggerMorningPunishmentModal();
+      });
+
+      document.getElementById('spinNewPunishmentBtn').addEventListener('click', () => {
+        state.previewPunishmentIndex = (state.previewPunishmentIndex + 1 + Math.floor(Math.random() * (PUNISHMENT_POOL.length - 1))) % PUNISHMENT_POOL.length;
+        if (state.pendingPunishment) {
+          state.pendingPunishment = PUNISHMENT_POOL[state.previewPunishmentIndex];
+        }
+        playWaterPourSound(100);
+        renderUI();
+        showStatusToast('🎲', 'Generated a new random morning punishment!');
+      });
+
+      document.getElementById('rerollPunishmentBtn').addEventListener('click', () => {
+        state.previewPunishmentIndex = (state.previewPunishmentIndex + 1) % PUNISHMENT_POOL.length;
+        const chosen = PUNISHMENT_POOL[state.previewPunishmentIndex];
+        state.pendingPunishment = chosen;
+        document.getElementById('punishmentTaskEmoji').textContent = chosen.emoji;
+        document.getElementById('punishmentTaskTitle').textContent = chosen.text;
+        renderUI();
+      });
+
+      document.getElementById('completePunishmentBtn').addEventListener('click', () => {
+        state.pendingPunishment = null;
+        document.getElementById('punishmentModal').classList.add('hidden');
+        playGoalAchievedSound();
+        renderUI();
+        showStatusToast('✅', 'Morning punishment completed! Penalty cleared.');
+      });
+
+      document.getElementById('simulateGoalMetDayBtn').addEventListener('click', () => {
+        const metrics = calculateWaterMetrics();
+        if (state.currentIntakeMl < metrics.totalDailyMl) {
+          state.currentIntakeMl = metrics.totalDailyMl;
+        }
+        state.streakDays += 1;
+        state.bestStreak = Math.max(state.bestStreak, state.streakDays);
+        state.pendingPunishment = null;
+        playGoalAchievedSound();
+        renderUI();
+        showStatusToast('🔥', `Goal completed! Streak increased to ${state.streakDays} days!`);
+      });
+
+      document.getElementById('closePermGuideModalBtn').addEventListener('click', () => {
+        startBackgroundAudioAndMediaSession();
+        document.getElementById('permissionGuideModal').classList.add('hidden');
+      });
+      document.getElementById('gotItPermGuideBtn').addEventListener('click', () => {
+        startBackgroundAudioAndMediaSession();
+        document.getElementById('permissionGuideModal').classList.add('hidden');
+      });
+
+      document.getElementById('openFormulaBtn').addEventListener('click', () => {
+        document.getElementById('formulaModal').classList.remove('hidden');
+      });
+      document.getElementById('closeFormulaModalBtn').addEventListener('click', () => {
+        document.getElementById('formulaModal').classList.add('hidden');
+      });
+      document.getElementById('gotItFormulaBtn').addEventListener('click', () => {
+        document.getElementById('formulaModal').classList.add('hidden');
+      });
+
+      document.querySelectorAll('.bottom-nav-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const view = btn.getAttribute('data-nav-view');
+          document.querySelectorAll('.bottom-nav-btn').forEach((b) => {
+            b.className = 'bottom-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold text-[11px] transition';
+          });
+          btn.className = 'bottom-nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl text-sky-600 dark:text-sky-400 bg-sky-500/10 font-bold text-[11px] transition';
+
+          const secTracker = document.getElementById('tabPanelTracker');
+          const secProfile = document.getElementById('tabPanelProfileWeather');
+          const secSched = document.getElementById('tabPanelSchedule');
+          const secStreak = document.getElementById('tabPanelStreakPunishment');
+
+          if (view === 'all') {
+            secTracker.classList.remove('hidden');
+            secProfile.classList.remove('hidden');
+            secSched.classList.remove('hidden');
+            secStreak.classList.remove('hidden');
+          } else if (view === 'profile') {
+            secTracker.classList.add('hidden');
+            secProfile.classList.remove('hidden');
+            secSched.classList.add('hidden');
+            secStreak.classList.add('hidden');
+          } else if (view === 'schedule') {
+            secTracker.classList.add('hidden');
+            secProfile.classList.add('hidden');
+            secSched.classList.remove('hidden');
+            secStreak.classList.add('hidden');
+          } else if (view === 'streak') {
+            secTracker.classList.add('hidden');
+            secProfile.classList.add('hidden');
+            secSched.classList.add('hidden');
+            secStreak.classList.remove('hidden');
+          }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          setTimeout(resizeCanvas, 50);
+        });
+      });
+
+      // Automatically strip any injected Netlify floating logo / toolbar overlay
+      function removeInjectedNetlifyOverlays() {
+        document.querySelectorAll('iframe[src*="netlify"], iframe[title*="Netlify"], [id*="netlify"], [class*="netlify"], netlify-drawer').forEach((el) => {
+          if (!el.closest('main')) {
+            el.remove();
+          }
+        });
+        // Also check direct body children with max z-index injected by host scripts
+        Array.from(document.body.children).forEach((child) => {
+          const id = (child.id || '').toLowerCase();
+          const cls = (typeof child.className === 'string' ? child.className : '').toLowerCase();
+          if (id.includes('netlify') || cls.includes('netlify') || child.tagName.toLowerCase().includes('netlify')) {
+            child.remove();
+          }
+        });
+      }
+      removeInjectedNetlifyOverlays();
+      const overlayObserver = new MutationObserver(() => removeInjectedNetlifyOverlays());
+      overlayObserver.observe(document.documentElement, { childList: true, subtree: true });
+
+      // Start background worker timer (with fallback to standard setInterval)
+      const workerStarted = startBackgroundTickWorker();
+      if (!workerStarted) {
+        setInterval(handleMasterSecondTick, 1000);
+      }
+    });
+  </script>
+</body>
+</html>
