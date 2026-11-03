@@ -70,7 +70,12 @@ public class MainActivity extends Activity {
             }
         });
 
-        webView.loadUrl(LOCAL_ASSET_URL);
+        java.io.File cachedFile = new java.io.File(getFilesDir(), "cached_index.html");
+        if (cachedFile.exists() && cachedFile.length() > 1000) {
+            webView.loadUrl("file://" + cachedFile.getAbsolutePath());
+        } else {
+            webView.loadUrl(LOCAL_ASSET_URL);
+        }
         checkForGitHubAutoUpdate();
     }
 
@@ -119,16 +124,23 @@ public class MainActivity extends Activity {
                     reader.close();
                     final String remoteHtml = sb.toString();
                     if (remoteHtml.contains("HydroPulse") && remoteHtml.contains("</html>")) {
+                        java.io.File cachedFile = new java.io.File(getFilesDir(), "cached_index.html");
                         SharedPreferences prefs = getSharedPreferences("hydropulse_ota", MODE_PRIVATE);
-                        int lastLen = prefs.getInt("html_len", -1);
-                        if (lastLen != -1 && lastLen != remoteHtml.length()) {
-                            runOnUiThread(() -> {
-                                if (webView != null) {
-                                    webView.loadDataWithBaseURL(LOCAL_ASSET_URL, remoteHtml, "text/html", "UTF-8", null);
-                                }
-                            });
+                        int lastHash = prefs.getInt("html_hash", 0);
+                        int newHash = remoteHtml.hashCode();
+                        if (lastHash != newHash || !cachedFile.exists()) {
+                            java.io.FileOutputStream fos = new java.io.FileOutputStream(cachedFile, false);
+                            fos.write(remoteHtml.getBytes("UTF-8"));
+                            fos.close();
+                            prefs.edit().putInt("html_hash", newHash).apply();
+                            if (lastHash != 0) {
+                                runOnUiThread(() -> {
+                                    if (webView != null) {
+                                        webView.loadUrl("file://" + cachedFile.getAbsolutePath());
+                                    }
+                                });
+                            }
                         }
-                        prefs.edit().putInt("html_len", remoteHtml.length()).apply();
                     }
                 }
                 conn.disconnect();
