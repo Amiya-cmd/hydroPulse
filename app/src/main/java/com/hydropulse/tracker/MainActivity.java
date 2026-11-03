@@ -27,19 +27,18 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class MainActivity extends Activity {
-    // Always loads the built-in app first (zero Netlify 404 errors!)
     private static final String LOCAL_ASSET_URL = "file:///android_asset/index.html";
-    // Optional background auto-update directly from your GitHub repo:
     private static final String GITHUB_RAW_UPDATE_URL = "https://raw.githubusercontent.com/Amiya-cmd/hydroPulse/main/app/src/main/assets/index.html";
     public static final String CHANNEL_ID = "hydropulse_reminders_channel";
+    public static final String PREFS_NOTIF_LOGS = "hydropulse_notif_logs";
+    private static MainActivity activeInstance;
     private WebView webView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        activeInstance = this;
         createNotificationChannel();
-
-        // Prompt for Android 13+ Notification permission right on startup
         requestNotificationPermissionNative();
 
         webView = new WebView(this);
@@ -55,7 +54,13 @@ public class MainActivity extends Activity {
         settings.setMediaPlaybackRequiresUserGesture(false);
 
         webView.addJavascriptInterface(new AndroidBridge(this), "AndroidBridge");
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                triggerWebViewDrinkSync();
+            }
+        });
 
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -65,11 +70,35 @@ public class MainActivity extends Activity {
             }
         });
 
-        // 1. Immediately load the built-in app so it NEVER shows "Site not found"
         webView.loadUrl(LOCAL_ASSET_URL);
-
-        // 2. Silently check your GitHub repo in the background for any newer index.html updates
         checkForGitHubAutoUpdate();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        activeInstance = this;
+        triggerWebViewDrinkSync();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (activeInstance == this) {
+            activeInstance = null;
+        }
+        super.onDestroy();
+    }
+
+    public static void notifyDrinkLoggedFromNotification() {
+        if (activeInstance != null) {
+            activeInstance.runOnUiThread(() -> activeInstance.triggerWebViewDrinkSync());
+        }
+    }
+
+    public void triggerWebViewDrinkSync() {
+        if (webView != null) {
+            webView.evaluateJavascript("if(window.syncDrinksLoggedFromNotification) window.syncDrinksLoggedFromNotification();", null);
+        }
     }
 
     private void checkForGitHubAutoUpdate() {
@@ -103,9 +132,7 @@ public class MainActivity extends Activity {
                     }
                 }
                 conn.disconnect();
-            } catch (Exception ignored) {
-                // Offline or no update needed — stays on built-in LOCAL_ASSET_URL
-            }
+            } catch (Exception ignored) {}
         }).start();
     }
 
@@ -116,7 +143,7 @@ public class MainActivity extends Activity {
                 "HydroPulse Water Reminders",
                 NotificationManager.IMPORTANCE_HIGH
             );
-            channel.setDescription("15, 30, and 60 minute hydration interval alerts");
+            channel.setDescription("Interactive hydration reminders with 1-tap water logging");
             channel.enableVibration(true);
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) {
@@ -178,14 +205,24 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public void scheduleNativeReminder(long delayMs, int intervalMins, String title, String body) {
+        public String consumePendingNotificationDrinks() {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_NOTIF_LOGS, MODE_PRIVATE);
+            String json = prefs.getString("pending_json", "[]");
+            prefs.edit().putString("pending_json", "[]").apply();
+            return json;
+        }
+
+        @JavascriptInterface
+        public void scheduleNativeReminder(long delayMs, int intervalMins, int perIntervalMl, int currentIntakeMl, int totalDailyMl) {
             AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             if (alarmManager == null) return;
 
             Intent intent = new Intent(context, WaterAlarmReceiver.class);
-            intent.putExtra("title", title);
-            intent.putExtra("body", body);
+            intent.setAction(WaterAlarmReceiver.ACTION_SHOW_REMINDER);
             intent.putExtra("intervalMins", intervalMins);
+            intent.putExtra("perIntervalMl", perIntervalMl);
+            intent.putExtra("currentIntakeMl", currentIntakeMl);
+            intent.putExtra("totalDailyMl", totalDailyMl);
 
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context,
@@ -207,6 +244,7 @@ public class MainActivity extends Activity {
             AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             if (alarmManager == null) return;
             Intent intent = new Intent(context, WaterAlarmReceiver.class);
+            intent.setAction(WaterAlarmReceiver.ACTION_SHOW_REMINDER);
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context,
                 2001,

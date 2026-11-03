@@ -1684,8 +1684,9 @@
             window.AndroidBridge.scheduleNativeReminder(
               delayMs,
               metrics.intervalMins,
-              `HydroPulse • ${metrics.intervalMins}-Min Water Reminder`,
-              `Time to drink ${metrics.perIntervalMl} ml of water! Daily target: ${metrics.totalDailyMl} ml.`
+              metrics.perIntervalMl,
+              state.currentIntakeMl,
+              metrics.totalDailyMl
             );
           } else if (typeof window.AndroidBridge.cancelNativeReminder === 'function') {
             window.AndroidBridge.cancelNativeReminder();
@@ -1976,6 +1977,40 @@
     // =========================================================================
     // WATER LOGGING & REMINDER HANDLERS
     // =========================================================================
+    function syncDrinksLoggedFromNotification() {
+      if (window.AndroidBridge && typeof window.AndroidBridge.consumePendingNotificationDrinks === 'function') {
+        try {
+          const rawJson = window.AndroidBridge.consumePendingNotificationDrinks();
+          if (rawJson && rawJson !== '[]') {
+            const items = JSON.parse(rawJson);
+            if (Array.isArray(items) && items.length > 0) {
+              const prevMetrics = calculateWaterMetrics();
+              const wasBelowGoal = state.currentIntakeMl < prevMetrics.totalDailyMl;
+              let addedTotal = 0;
+              items.forEach((item) => {
+                const amt = Number(item.amount) || prevMetrics.perIntervalMl;
+                addedTotal += amt;
+                state.currentIntakeMl += amt;
+                state.drinkLogs.push({ time: item.time || 'Notif', amount: amt });
+              });
+              resetIntervalTimerToFull();
+              waveBoostVelocity = 14;
+              if (wasBelowGoal && state.currentIntakeMl >= prevMetrics.totalDailyMl) {
+                state.streakDays += 1;
+                state.bestStreak = Math.max(state.bestStreak, state.streakDays);
+                playGoalAchievedSound();
+              } else {
+                playWaterPourSound(addedTotal);
+              }
+              renderUI();
+              showStatusToast('💧', `Logged +${addedTotal} ml directly from notification!`);
+            }
+          }
+        } catch (e) {}
+      }
+    }
+    window.syncDrinksLoggedFromNotification = syncDrinksLoggedFromNotification;
+
     function addWaterIntake(amountMl) {
       const prevMetrics = calculateWaterMetrics();
       const wasBelowGoal = state.currentIntakeMl < prevMetrics.totalDailyMl;
@@ -2419,8 +2454,10 @@
       window.addEventListener('resize', resizeCanvas);
 
       // Resume / Visibility change check so timer updates immediately when returning to app
+      syncDrinksLoggedFromNotification();
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
+          syncDrinksLoggedFromNotification();
           handleMasterSecondTick();
           renderUI();
         }

@@ -2,7 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.hydropulse.tracker">
 
-    <!-- Real Android OS Permissions that appear in App Info -> Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -17,6 +16,8 @@
 
     <application
         android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:roundIcon="@drawable/ic_launcher_round"
         android:label="HydroPulse"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
@@ -25,6 +26,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -32,7 +34,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Background Alarm BroadcastReceiver (Fires notifications even when app is closed!) -->
+        <!-- Background Alarm & Direct Notification Water-Logging Receiver -->
         <receiver
             android:name=".WaterAlarmReceiver"
             android:enabled="true"
