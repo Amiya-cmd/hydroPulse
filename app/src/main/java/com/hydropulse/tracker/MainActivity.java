@@ -8,6 +8,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
@@ -20,10 +21,16 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class MainActivity extends Activity {
-    // Loads your live Netlify URL for automatic online updates, with offline asset fallback
-    private static final String LIVE_NETLIFY_URL = "https://lambent-cranachan-fcf6b3.netlify.app/";
+    // Always loads the built-in app first (zero Netlify 404 errors!)
+    private static final String LOCAL_ASSET_URL = "file:///android_asset/index.html";
+    // Optional background auto-update directly from your GitHub repo:
+    private static final String GITHUB_RAW_UPDATE_URL = "https://raw.githubusercontent.com/Amiya-cmd/hydroPulse/main/app/src/main/assets/index.html";
     public static final String CHANNEL_ID = "hydropulse_reminders_channel";
     private WebView webView;
 
@@ -31,6 +38,9 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         createNotificationChannel();
+
+        // Prompt for Android 13+ Notification permission right on startup
+        requestNotificationPermissionNative();
 
         webView = new WebView(this);
         setContentView(webView);
@@ -40,17 +50,12 @@ public class MainActivity extends Activity {
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
         settings.setGeolocationEnabled(true);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
         webView.addJavascriptInterface(new AndroidBridge(this), "AndroidBridge");
-
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                view.loadUrl("file:///android_asset/index.html");
-            }
-        });
+        webView.setWebViewClient(new WebViewClient());
 
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -60,7 +65,48 @@ public class MainActivity extends Activity {
             }
         });
 
-        webView.loadUrl(LIVE_NETLIFY_URL);
+        // 1. Immediately load the built-in app so it NEVER shows "Site not found"
+        webView.loadUrl(LOCAL_ASSET_URL);
+
+        // 2. Silently check your GitHub repo in the background for any newer index.html updates
+        checkForGitHubAutoUpdate();
+    }
+
+    private void checkForGitHubAutoUpdate() {
+        new Thread(() -> {
+            try {
+                URL url = new URL(GITHUB_RAW_UPDATE_URL);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setConnectTimeout(4000);
+                conn.setReadTimeout(4000);
+                conn.setRequestMethod("GET");
+                if (conn.getResponseCode() == 200) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line).append("\n");
+                    }
+                    reader.close();
+                    final String remoteHtml = sb.toString();
+                    if (remoteHtml.contains("HydroPulse") && remoteHtml.contains("</html>")) {
+                        SharedPreferences prefs = getSharedPreferences("hydropulse_ota", MODE_PRIVATE);
+                        int lastLen = prefs.getInt("html_len", -1);
+                        if (lastLen != -1 && lastLen != remoteHtml.length()) {
+                            runOnUiThread(() -> {
+                                if (webView != null) {
+                                    webView.loadDataWithBaseURL(LOCAL_ASSET_URL, remoteHtml, "text/html", "UTF-8", null);
+                                }
+                            });
+                        }
+                        prefs.edit().putInt("html_len", remoteHtml.length()).apply();
+                    }
+                }
+                conn.disconnect();
+            } catch (Exception ignored) {
+                // Offline or no update needed — stays on built-in LOCAL_ASSET_URL
+            }
+        }).start();
     }
 
     private void createNotificationChannel() {
