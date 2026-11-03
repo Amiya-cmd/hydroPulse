@@ -4,24 +4,19 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Deep Sky-Blue Rounded App Icon Background -->
     <path
         android:fillColor="#0284C7"
-        android:pathData="M24,0 L84,0 A24,24 0 0,1 108,24 L108,84 A24,24 0 0,1 84,108 L24,108 A24,24 0 0,1 0,84 L0,24 A24,24 0 0,1 24,0 Z" />
-    <!-- Lighter Cyan Inner Glow Circle -->
+        android:pathData="M0,0 L108,0 L108,108 L0,108 Z" />
     <path
         android:fillColor="#0EA5E9"
-        android:pathData="M54,14 A40,40 0 1,1 53.9,14 Z" />
-    <!-- Main White Water Droplet -->
+        android:pathData="M54,14 C76.1,14 94,31.9 94,54 C94,76.1 76.1,94 54,94 C31.9,94 14,76.1 14,54 C14,31.9 31.9,14 54,14 Z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,20 C54,20 30,49 30,66 C30,79.25 40.75,90 54,90 C67.25,90 78,79.25 78,66 C78,49 54,20 54,20 Z" />
-    <!-- HydroPulse Signature Pulse Line Inside Droplet -->
+        android:pathData="M54,22 C54,22 30,50 30,66 C30,79.25 40.75,90 54,90 C67.25,90 78,79.25 78,66 C78,50 54,22 54,22 Z" />
     <path
         android:strokeColor="#0284C7"
         android:strokeWidth="4.2"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:fillColor="#00000000"
         android:pathData="M37,67 L46,67 L50,56 L56,76 L61,63 L65,67 L71,67" />
 </vector>

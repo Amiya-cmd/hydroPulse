@@ -14,8 +14,11 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
+import android.graphics.drawable.Icon;
 import android.os.Build;
 import android.widget.Toast;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -55,18 +58,17 @@ public class WaterAlarmReceiver extends BroadcastReceiver {
                 manager.cancel(NOTIF_ID);
             }
 
-            // Save drink log to SharedPreferences so MainActivity syncs it immediately or on next open
-            String timeStr = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
-            SharedPreferences prefs = context.getSharedPreferences(MainActivity.PREFS_NOTIF_LOGS, Context.MODE_PRIVATE);
-            String existing = prefs.getString("pending_json", "[]");
-            String newEntry = "{"amount":" + perIntervalMl + ","time":"" + timeStr + ""}";
-            String updated;
-            if (existing == null || existing.equals("[]") || existing.length() < 2) {
-                updated = "[" + newEntry + "]";
-            } else {
-                updated = existing.substring(0, existing.length() - 1) + "," + newEntry + "]";
-            }
-            prefs.edit().putString("pending_json", updated).apply();
+            try {
+                String timeStr = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date());
+                SharedPreferences prefs = context.getSharedPreferences(MainActivity.PREFS_NOTIF_LOGS, Context.MODE_PRIVATE);
+                String existing = prefs.getString("pending_json", "[]");
+                JSONArray arr = new JSONArray(existing);
+                JSONObject entry = new JSONObject();
+                entry.put("amount", perIntervalMl);
+                entry.put("time", timeStr);
+                arr.put(entry);
+                prefs.edit().putString("pending_json", arr.toString()).apply();
+            } catch (Exception ignored) {}
 
             int newIntake = currentIntakeMl + perIntervalMl;
             Toast.makeText(
@@ -75,15 +77,12 @@ public class WaterAlarmReceiver extends BroadcastReceiver {
                 Toast.LENGTH_SHORT
             ).show();
 
-            // Notify MainActivity if currently open
             MainActivity.notifyDrinkLoggedFromNotification();
-
-            // Schedule the next interval reminder automatically
             scheduleNextInterval(context, intervalMins, perIntervalMl, newIntake, totalDailyMl);
             return;
         }
 
-        // 2. Otherwise, show the Engaging Reminder Notification with Custom Logo + Action Button!
+        // 2. Build Engaging Notification with Custom Water-Drop Icons & Direct Action Button
         Random rng = new Random();
         int titleIdx = rng.nextInt(ENGAGING_TITLES.length);
         String title;
@@ -102,7 +101,6 @@ public class WaterAlarmReceiver extends BroadcastReceiver {
         }
         String shortBody = "Tap '+Add " + perIntervalMl + " ml Now' below to log your drink directly!";
 
-        // Intent to open the app when tapping the notification body
         Intent openIntent = new Intent(context, MainActivity.class);
         openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent contentIntent = PendingIntent.getActivity(
@@ -112,7 +110,6 @@ public class WaterAlarmReceiver extends BroadcastReceiver {
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        // Intent for the direct "+Add [X] ml Now" button on the notification
         Intent addDrinkIntent = new Intent(context, WaterAlarmReceiver.class);
         addDrinkIntent.setAction(ACTION_ADD_WATER);
         addDrinkIntent.putExtra("intervalMins", intervalMins);
@@ -135,42 +132,35 @@ public class WaterAlarmReceiver extends BroadcastReceiver {
             builder.setPriority(Notification.PRIORITY_HIGH);
         }
 
-        // Custom HydroPulse Water-Drop Status Bar Icon + Full-Color Logo Badge + Sky-Blue Brand Color
-        builder.setSmallIcon(R.drawable.ic_stat_water_drop)
+        Icon smallDropIcon = Icon.createWithBitmap(createSmallDropSilhouetteBitmap());
+        builder.setSmallIcon(smallDropIcon)
                .setLargeIcon(createHydroPulseLogoBitmap())
                .setContentTitle(title)
                .setContentText(shortBody)
                .setStyle(new Notification.BigTextStyle().bigText(bigBody).setSummaryText("HydroPulse • " + intervalMins + "-Min Sip Quota"))
+               .setColor(Color.parseColor("#0284C7"))
                .setAutoCancel(true)
                .setContentIntent(contentIntent);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            builder.setColor(Color.parseColor("#0284C7"));
-        }
+        Notification.Action drinkAction = new Notification.Action.Builder(
+            smallDropIcon,
+            "💧 +Add " + perIntervalMl + " ml Now",
+            addDrinkPending
+        ).build();
+        builder.addAction(drinkAction);
 
-        // Add direct 1-tap water logging action button right on the notification
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
-            Notification.Action drinkAction = new Notification.Action.Builder(
-                R.drawable.ic_stat_water_drop,
-                "💧 +Add " + perIntervalMl + " ml Now",
-                addDrinkPending
-            ).build();
-            builder.addAction(drinkAction);
-
-            Notification.Action openAction = new Notification.Action.Builder(
-                R.drawable.ic_stat_water_drop,
-                "Open Tracker",
-                contentIntent
-            ).build();
-            builder.addAction(openAction);
-        }
+        Notification.Action openAction = new Notification.Action.Builder(
+            smallDropIcon,
+            "Open Tracker",
+            contentIntent
+        ).build();
+        builder.addAction(openAction);
 
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager != null) {
             manager.notify(NOTIF_ID, builder.build());
         }
 
-        // Schedule the next recurring interval automatically
         scheduleNextInterval(context, intervalMins, perIntervalMl, currentIntakeMl, totalDailyMl);
     }
 
@@ -200,23 +190,38 @@ public class WaterAlarmReceiver extends BroadcastReceiver {
         }
     }
 
-    // Draws a crisp, colorful HydroPulse Water-Drop Badge Bitmap for the Notification Large Icon
+    // Status-bar small white water-droplet silhouette icon
+    private static Bitmap createSmallDropSilhouetteBitmap() {
+        int size = 72;
+        Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(Color.WHITE);
+
+        Path drop = new Path();
+        drop.moveTo(36f, 6f);
+        drop.cubicTo(36f, 6f, 12f, 34f, 12f, 48f);
+        drop.arcTo(new RectF(12f, 24f, 60f, 72f), 180f, -180f, false);
+        drop.cubicTo(60f, 34f, 36f, 6f, 36f, 6f);
+        drop.close();
+        canvas.drawPath(drop, paint);
+        return bmp;
+    }
+
+    // Full-color HydroPulse Logo Bitmap for the Notification Large Icon
     private static Bitmap createHydroPulseLogoBitmap() {
         int size = 192;
         Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bmp);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        // Rounded square sky-blue background
         paint.setColor(Color.parseColor("#0284C7"));
         RectF rect = new RectF(0, 0, size, size);
         canvas.drawRoundRect(rect, 44f, 44f, paint);
 
-        // Inner cyan glow circle
         paint.setColor(Color.parseColor("#0EA5E9"));
         canvas.drawCircle(size / 2f, size / 2f, 70f, paint);
 
-        // White water droplet
         paint.setColor(Color.WHITE);
         Path drop = new Path();
         drop.moveTo(96f, 36f);
@@ -225,6 +230,23 @@ public class WaterAlarmReceiver extends BroadcastReceiver {
         drop.cubicTo(140f, 88f, 96f, 36f, 96f, 36f);
         drop.close();
         canvas.drawPath(drop, paint);
+
+        Paint pulsePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        pulsePaint.setColor(Color.parseColor("#0284C7"));
+        pulsePaint.setStyle(Paint.Style.STROKE);
+        pulsePaint.setStrokeWidth(7f);
+        pulsePaint.setStrokeCap(Paint.Cap.ROUND);
+        pulsePaint.setStrokeJoin(Paint.Join.ROUND);
+
+        Path pulse = new Path();
+        pulse.moveTo(64f, 120f);
+        pulse.lineTo(80f, 120f);
+        pulse.lineTo(88f, 100f);
+        pulse.lineTo(98f, 136f);
+        pulse.lineTo(108f, 112f);
+        pulse.lineTo(115f, 120f);
+        pulse.lineTo(128f, 120f);
+        canvas.drawPath(pulse, pulsePaint);
 
         return bmp;
     }
