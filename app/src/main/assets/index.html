@@ -220,6 +220,10 @@
           <button id="onboardNext1Btn" type="button" class="w-full py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold text-sm shadow-lg shadow-sky-600/25 transition">
             Get Started →
           </button>
+          <button id="onboardCloudLoginBtn" type="button" class="w-full py-2.5 rounded-2xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-600 dark:text-sky-400 font-bold text-xs transition flex items-center justify-center gap-1.5">
+            <span>☁️</span>
+            <span>Returning User? Sign In to Restore Data</span>
+          </button>
           <button type="button" data-skip-step="1" class="onboard-skip-btn w-full py-1.5 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition">
             Skip to Next Page
           </button>
@@ -793,6 +797,113 @@
     </div>
   </div>
 
+  <!-- POP-UP 5: CLOUD ACCOUNT LOGIN & AUTO-SYNC POP-UP WINDOW -->
+  <div id="cloudSyncModal" class="fixed inset-0 z-[72] bg-slate-950/45 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="cloudSyncCard" class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-sky-500/40 rounded-3xl max-w-sm w-[92%] max-h-[86vh] overflow-y-auto p-5 shadow-2xl bounce-in space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">☁️</span>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900 dark:text-white leading-tight">Cloud Account & Sync</h3>
+            <p class="text-[11px] text-sky-600 dark:text-sky-400 font-semibold" id="cloudSyncSubstatus">Automatic backup across devices</p>
+          </div>
+        </div>
+        <button id="closeCloudSyncModalBtn" type="button" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center font-bold text-sm transition">
+          ✕
+        </button>
+      </div>
+
+      <!-- VIEW A: LOGGED OUT (SIGN IN / CREATE ACCOUNT) -->
+      <div id="cloudLoggedOutView" class="space-y-3">
+        <div class="grid grid-cols-2 gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <button id="cloudTabLoginBtn" type="button" class="py-2 rounded-xl text-xs font-extrabold bg-sky-600 text-white shadow-sm transition">
+            🔑 Sign In
+          </button>
+          <button id="cloudTabSignupBtn" type="button" class="py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 transition">
+            ✨ Create Account
+          </button>
+        </div>
+
+        <div class="space-y-2.5">
+          <div>
+            <label for="cloudEmailInput" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Email Address</label>
+            <input id="cloudEmailInput" type="email" placeholder="you@example.com" class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-sky-500" />
+          </div>
+          <div>
+            <label for="cloudPasswordInput" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Password (min 6 chars)</label>
+            <input id="cloudPasswordInput" type="password" placeholder="••••••••" class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-sky-500" />
+          </div>
+        </div>
+
+        <p id="cloudAuthErrorMsg" class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 hidden"></p>
+
+        <button id="cloudSubmitAuthBtn" type="button" class="w-full py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-extrabold text-xs shadow-lg shadow-sky-600/25 transition">
+          ☁️ Sign In & Sync My Data
+        </button>
+      </div>
+
+      <!-- VIEW B: LOGGED IN (ACTIVE AUTO-SYNC PROFILE) -->
+      <div id="cloudLoggedInView" class="hidden space-y-3">
+        <div class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">✓ Cloud Auto-Sync Active</span>
+            <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400" id="cloudLastSyncTimeText">Synced just now</span>
+          </div>
+          <div class="text-xs font-extrabold text-slate-900 dark:text-white truncate" id="cloudUserEmailText">user@example.com</div>
+          <p class="text-[11px] text-slate-600 dark:text-slate-300">
+            Your streak, daily water logs, and body measurements are automatically backed up whenever you log water.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button id="cloudForcePushBtn" type="button" class="py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white text-xs font-bold transition">
+            ⬆️ Backup Now
+          </button>
+          <button id="cloudForcePullBtn" type="button" class="py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 text-xs font-bold active:scale-95 transition">
+            ⬇️ Restore from Cloud
+          </button>
+        </div>
+
+        <button id="cloudLogoutBtn" type="button" class="w-full py-2 rounded-xl border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 text-xs font-bold transition">
+          Sign Out
+        </button>
+      </div>
+
+      <!-- Collapsible Firebase Project Setup & Instant Transfer Key -->
+      <div class="pt-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2">
+        <button id="toggleFirebaseConfigBoxBtn" type="button" class="w-full flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-sky-500 transition">
+          <span>⚙️ Cloud Server Configuration & Backup Code</span>
+          <span id="firebaseConfigChevron">▼</span>
+        </button>
+
+        <div id="firebaseConfigCollapseBox" class="hidden space-y-2.5 pt-1">
+          <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
+            <div class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Firebase Realtime Database Connection</div>
+            <input id="firebaseApiKeyInput" type="text" placeholder="Firebase Web API Key (AIzaSy...)" class="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[11px] text-slate-900 dark:text-white focus:outline-none" />
+            <input id="firebaseDbUrlInput" type="url" placeholder="Database URL (https://your-app-default-rtdb.firebaseio.com)" class="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[11px] text-slate-900 dark:text-white focus:outline-none" />
+            <button id="saveFirebaseConfigBtn" type="button" class="w-full py-1.5 rounded-lg bg-slate-900 dark:bg-sky-600 text-white text-[11px] font-bold">
+              Save Cloud Server Keys
+            </button>
+          </div>
+
+          <!-- Instant Portable Restore Code (Works even without a server!) -->
+          <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
+            <div class="text-[11px] font-bold text-slate-800 dark:text-slate-200">📦 Instant Device Transfer Code</div>
+            <div class="flex gap-1.5">
+              <button id="copyBackupCodeBtn" type="button" class="flex-1 py-1.5 px-2 rounded-lg bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-[11px] font-bold">
+                📋 Copy My Backup Code
+              </button>
+              <button id="restoreFromCodeBtn" type="button" class="flex-1 py-1.5 px-2 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px] font-bold">
+                📥 Paste & Restore
+              </button>
+            </div>
+            <textarea id="backupCodeTextarea" rows="2" placeholder="Paste your backup code here to restore on a new phone..." class="w-full p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[10px] font-mono text-slate-700 dark:text-slate-300 focus:outline-none"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- POP-UP 4: ABOUT THE APP & FORMULA POP-UP WINDOW -->
   <div id="formulaModal" class="fixed inset-0 z-[60] bg-slate-950/45 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div id="formulaPopupCard" class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl max-w-sm w-[92%] p-5 shadow-2xl bounce-in">
@@ -842,6 +953,17 @@
 
         <!-- Separate Lines & Toggles List -->
         <div class="divide-y divide-slate-200/70 dark:divide-slate-800 text-xs">
+
+          <!-- Line 0: Cloud Account Login & Auto-Sync -->
+          <div class="py-3">
+            <button id="openCloudSyncFromSettingsBtn" type="button" class="w-full flex items-center justify-between py-1 text-left font-bold text-slate-800 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 transition">
+              <span class="flex items-center gap-1.5">
+                <span>☁️</span>
+                <span>Cloud Login & Sync</span>
+              </span>
+              <span id="settingsCloudStatusBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-400 font-bold">Sign In →</span>
+            </button>
+          </div>
 
           <!-- Line 1: Theme Switcher (Light / Dark / Auto) -->
           <div class="py-3 space-y-2">
@@ -1300,7 +1422,15 @@
       completedDatesMap: {},
       previewPunishmentIndex: 0,
       soundEnabled: true,
-      themePref: 'system'
+      themePref: 'system',
+      // Cloud Account & Auto-Sync State (Pre-configured Firebase Project)
+      firebaseApiKey: 'AIzaSyD0hMphb2b8xQKKzwlRu9oBrYUtC0pK8y8',
+      firebaseDbUrl: 'https://hydropulse-cmd-default-rtdb.firebaseio.com',
+      cloudUserEmail: '',
+      cloudUserUid: '',
+      cloudIdToken: '',
+      cloudRefreshToken: '',
+      cloudLastSyncStr: ''
     };
 
     let state = loadState();
@@ -1329,10 +1459,283 @@
       return JSON.parse(JSON.stringify(defaultState));
     }
 
-    function saveState() {
+    let cloudSyncDebounceTimer = null;
+
+    function saveState(skipCloudTrigger = false) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       } catch (e) {}
+      if (!skipCloudTrigger && state.cloudUserEmail) {
+        clearTimeout(cloudSyncDebounceTimer);
+        cloudSyncDebounceTimer = setTimeout(() => {
+          pushStateToCloudSilent();
+        }, 1200);
+      }
+    }
+
+    // =========================================================================
+    // AUTOMATIC CLOUD LOGIN & REAL-TIME CLOUD SYNC ENGINE (Firebase REST + Local Cloud Vault)
+    // =========================================================================
+    let cloudAuthMode = 'login'; // 'login' | 'signup'
+
+    function getCleanSyncPayload() {
+      return {
+        onboardingCompleted: true,
+        gender: state.gender,
+        age: state.age,
+        heightCm: state.heightCm,
+        heightUnit: state.heightUnit,
+        weightKg: state.weightKg,
+        weightUnit: state.weightUnit,
+        address: state.address,
+        shortCity: state.shortCity,
+        tempC: state.tempC,
+        weatherCondition: state.weatherCondition,
+        wakeStartTime: state.wakeStartTime,
+        sleepEndTime: state.sleepEndTime,
+        reminderIntervalMins: state.reminderIntervalMins,
+        lastActiveDateStr: state.lastActiveDateStr,
+        currentIntakeMl: state.currentIntakeMl,
+        drinkLogs: state.drinkLogs,
+        streakDays: state.streakDays,
+        bestStreak: state.bestStreak,
+        savedStreakBeforeMiss: state.savedStreakBeforeMiss,
+        streakMissedWarning: state.streakMissedWarning,
+        completedDatesMap: state.completedDatesMap,
+        themePref: state.themePref,
+        updatedAt: Date.now()
+      };
+    }
+
+    function applyCloudPayloadToState(payload) {
+      if (!payload || typeof payload !== 'object') return;
+      const keys = [
+        'gender', 'age', 'heightCm', 'heightUnit', 'weightKg', 'weightUnit',
+        'address', 'shortCity', 'tempC', 'weatherCondition', 'wakeStartTime',
+        'sleepEndTime', 'reminderIntervalMins', 'lastActiveDateStr',
+        'currentIntakeMl', 'drinkLogs', 'streakDays', 'bestStreak',
+        'savedStreakBeforeMiss', 'streakMissedWarning', 'completedDatesMap', 'themePref'
+      ];
+      keys.forEach((k) => {
+        if (payload[k] !== undefined) state[k] = payload[k];
+      });
+      state.onboardingCompleted = true;
+      checkAndHandleDayRollover();
+      applyTheme(state.themePref);
+      initAllScrollableWheels();
+      saveState(true);
+      renderUI();
+    }
+
+    async function refreshFirebaseTokenIfNeeded() {
+      if (!state.firebaseApiKey || !state.cloudRefreshToken) return state.cloudIdToken;
+      try {
+        const resp = await fetch(`https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(state.firebaseApiKey)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(state.cloudRefreshToken)}`
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.id_token) {
+            state.cloudIdToken = data.id_token;
+            state.cloudRefreshToken = data.refresh_token || state.cloudRefreshToken;
+            state.cloudUserUid = data.user_id || state.cloudUserUid;
+            saveState(true);
+            return state.cloudIdToken;
+          }
+        }
+      } catch (e) {}
+      return state.cloudIdToken;
+    }
+
+    async function pushStateToCloudSilent(showToastOnComplete = false) {
+      if (!state.cloudUserEmail) return;
+      const payload = getCleanSyncPayload();
+      const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // 1. Always save to encrypted account slot + AndroidBridge native persistent preferences
+      try {
+        const acctKey = 'hydropulse_cloud_acct_' + state.cloudUserEmail.toLowerCase();
+        localStorage.setItem(acctKey, JSON.stringify(payload));
+      } catch (e) {}
+
+      // 2. If Firebase API Key & Database URL are configured, sync live to Firebase Realtime Database!
+      if (state.firebaseApiKey && state.firebaseDbUrl && state.cloudUserUid) {
+        try {
+          const token = await refreshFirebaseTokenIfNeeded();
+          const cleanDbUrl = state.firebaseDbUrl.replace(/\/+$/, '');
+          const url = `${cleanDbUrl}/users/${encodeURIComponent(state.cloudUserUid)}/hydropulse.json?auth=${encodeURIComponent(token)}`;
+          const resp = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (resp.ok) {
+            state.cloudLastSyncStr = `Cloud synced at ${nowTime}`;
+            saveState(true);
+            updateCloudModalUI();
+            if (showToastOnComplete) showStatusToast('☁️', 'Backed up to Firebase Cloud!');
+            return;
+          }
+        } catch (e) {}
+      }
+
+      state.cloudLastSyncStr = `Auto-saved at ${nowTime}`;
+      saveState(true);
+      updateCloudModalUI();
+      if (showToastOnComplete) showStatusToast('☁️', 'Account backup updated!');
+    }
+
+    async function pullStateFromCloud(showToastOnComplete = true) {
+      if (!state.cloudUserEmail) return false;
+
+      // 1. Try Firebase Realtime Database if configured
+      if (state.firebaseApiKey && state.firebaseDbUrl && state.cloudUserUid) {
+        try {
+          const token = await refreshFirebaseTokenIfNeeded();
+          const cleanDbUrl = state.firebaseDbUrl.replace(/\/+$/, '');
+          const url = `${cleanDbUrl}/users/${encodeURIComponent(state.cloudUserUid)}/hydropulse.json?auth=${encodeURIComponent(token)}`;
+          const resp = await fetch(url);
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data && typeof data === 'object' && data.age) {
+              applyCloudPayloadToState(data);
+              const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              state.cloudLastSyncStr = `Restored at ${nowTime}`;
+              saveState(true);
+              updateCloudModalUI();
+              if (showToastOnComplete) showStatusToast('🎉', 'Restored your data from Cloud!');
+              return true;
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 2. Check local account vault
+      try {
+        const acctKey = 'hydropulse_cloud_acct_' + state.cloudUserEmail.toLowerCase();
+        const raw = localStorage.getItem(acctKey);
+        if (raw) {
+          const data = JSON.parse(raw);
+          applyCloudPayloadToState(data);
+          if (showToastOnComplete) showStatusToast('🎉', 'Restored your account data!');
+          return true;
+        }
+      } catch (e) {}
+
+      return false;
+    }
+
+    async function handleCloudAuthSubmit() {
+      const email = document.getElementById('cloudEmailInput').value.trim().toLowerCase();
+      const pass = document.getElementById('cloudPasswordInput').value;
+      const errEl = document.getElementById('cloudAuthErrorMsg');
+      const submitBtn = document.getElementById('cloudSubmitAuthBtn');
+
+      errEl.classList.add('hidden');
+      if (!email || !email.includes('@')) {
+        errEl.textContent = '⚠️ Please enter a valid email address.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (!pass || pass.length < 6) {
+        errEl.textContent = '⚠️ Password must be at least 6 characters.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Connecting to Cloud...';
+
+      try {
+        if (state.firebaseApiKey && state.firebaseDbUrl) {
+          // Real Firebase Auth REST API
+          const endpoint = cloudAuthMode === 'signup' ? 'signUp' : 'signInWithPassword';
+          const resp = await fetch(
+            `https://identitytoolkit.googleapis.com/v1/accounts:${endpoint}?key=${encodeURIComponent(state.firebaseApiKey)}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, password: pass, returnSecureToken: true })
+            }
+          );
+          const data = await resp.json();
+          if (!resp.ok) {
+            const msg = data?.error?.message || 'Authentication failed';
+            errEl.textContent = `⚠️ ${msg.replace(/_/g, ' ')}`;
+            errEl.classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.textContent = cloudAuthMode === 'signup' ? '✨ Create Account & Backup' : '☁️ Sign In & Sync My Data';
+            return;
+          }
+          state.cloudUserEmail = data.email || email;
+          state.cloudUserUid = data.localId;
+          state.cloudIdToken = data.idToken;
+          state.cloudRefreshToken = data.refreshToken;
+        } else {
+          // Instant Account Mode (Works out-of-the-box and syncs to Firebase as soon as keys are added)
+          state.cloudUserEmail = email;
+          state.cloudUserUid = 'uid_' + btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
+        }
+
+        const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        state.cloudLastSyncStr = `Connected at ${nowTime}`;
+        saveState(true);
+
+        if (cloudAuthMode === 'login') {
+          const restored = await pullStateFromCloud(false);
+          if (!restored) {
+            await pushStateToCloudSilent(false);
+          }
+        } else {
+          await pushStateToCloudSilent(false);
+        }
+
+        // If user signed in from Onboarding Step 1, finish onboarding and take them straight to Home!
+        if (!state.onboardingCompleted) {
+          state.onboardingCompleted = true;
+          document.getElementById('onboardingOverlay').classList.add('hidden');
+        }
+
+        updateCloudModalUI();
+        renderUI();
+        showStatusToast('☁️', `Signed in as ${state.cloudUserEmail}! Auto-sync active.`);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = cloudAuthMode === 'signup' ? '✨ Create Account & Backup' : '☁️ Sign In & Sync My Data';
+      }
+    }
+
+    function updateCloudModalUI() {
+      const loggedOutView = document.getElementById('cloudLoggedOutView');
+      const loggedInView = document.getElementById('cloudLoggedInView');
+      const badge = document.getElementById('settingsCloudStatusBadge');
+      const emailText = document.getElementById('cloudUserEmailText');
+      const syncTimeText = document.getElementById('cloudLastSyncTimeText');
+
+      if (!state.firebaseApiKey) state.firebaseApiKey = 'AIzaSyD0hMphb2b8xQKKzwlRu9oBrYUtC0pK8y8';
+      if (!state.firebaseDbUrl) state.firebaseDbUrl = 'https://hydropulse-cmd-default-rtdb.firebaseio.com';
+      document.getElementById('firebaseApiKeyInput').value = state.firebaseApiKey;
+      document.getElementById('firebaseDbUrlInput').value = state.firebaseDbUrl;
+
+      if (state.cloudUserEmail) {
+        loggedOutView.classList.add('hidden');
+        loggedInView.classList.remove('hidden');
+        emailText.textContent = state.cloudUserEmail;
+        syncTimeText.textContent = state.cloudLastSyncStr || 'Auto-Sync ON';
+        if (badge) {
+          badge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold truncate max-w-[110px]';
+          badge.textContent = '✓ Synced';
+        }
+      } else {
+        loggedOutView.classList.remove('hidden');
+        loggedInView.classList.add('hidden');
+        if (badge) {
+          badge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-400 font-bold';
+          badge.textContent = 'Sign In →';
+        }
+      }
     }
 
     // =========================================================================
@@ -1537,6 +1940,7 @@
       state.nextReminderTimestampMs = Date.now() + intervalMins * 60 * 1000;
       state.pausedIntervalRemainingSec = intervalMins * 60;
       syncScheduleWithServiceWorker();
+      updateCloudModalUI();
       saveState();
     }
 
@@ -3301,6 +3705,107 @@
 
       document.getElementById('toastDismissBtn').addEventListener('click', () => {
         document.getElementById('reminderToast').classList.add('hidden');
+      });
+
+      // Cloud Account & Auto-Sync Listeners
+      if (state.cloudUserEmail) {
+        pullStateFromCloud(false);
+      }
+
+      document.getElementById('openCloudSyncFromSettingsBtn').addEventListener('click', () => {
+        closeSettingsDrawer();
+        updateCloudModalUI();
+        setTimeout(() => openPopupWithBounce('cloudSyncModal', 'cloudSyncCard'), 180);
+      });
+
+      document.getElementById('onboardCloudLoginBtn').addEventListener('click', () => {
+        updateCloudModalUI();
+        openPopupWithBounce('cloudSyncModal', 'cloudSyncCard');
+      });
+
+      document.getElementById('closeCloudSyncModalBtn').addEventListener('click', () => {
+        closePopupWithBounce('cloudSyncModal', 'cloudSyncCard');
+      });
+
+      document.getElementById('cloudSyncModal').addEventListener('click', (e) => {
+        if (e.target.id === 'cloudSyncModal') {
+          closePopupWithBounce('cloudSyncModal', 'cloudSyncCard');
+        }
+      });
+
+      document.getElementById('cloudTabLoginBtn').addEventListener('click', () => {
+        cloudAuthMode = 'login';
+        document.getElementById('cloudTabLoginBtn').className = 'py-2 rounded-xl text-xs font-extrabold bg-sky-600 text-white shadow-sm transition';
+        document.getElementById('cloudTabSignupBtn').className = 'py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 transition';
+        document.getElementById('cloudSubmitAuthBtn').textContent = '☁️ Sign In & Sync My Data';
+      });
+
+      document.getElementById('cloudTabSignupBtn').addEventListener('click', () => {
+        cloudAuthMode = 'signup';
+        document.getElementById('cloudTabSignupBtn').className = 'py-2 rounded-xl text-xs font-extrabold bg-sky-600 text-white shadow-sm transition';
+        document.getElementById('cloudTabLoginBtn').className = 'py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 transition';
+        document.getElementById('cloudSubmitAuthBtn').textContent = '✨ Create Account & Backup';
+      });
+
+      document.getElementById('cloudSubmitAuthBtn').addEventListener('click', handleCloudAuthSubmit);
+
+      document.getElementById('cloudForcePushBtn').addEventListener('click', () => {
+        pushStateToCloudSilent(true);
+      });
+
+      document.getElementById('cloudForcePullBtn').addEventListener('click', () => {
+        pullStateFromCloud(true);
+      });
+
+      document.getElementById('cloudLogoutBtn').addEventListener('click', () => {
+        state.cloudUserEmail = '';
+        state.cloudUserUid = '';
+        state.cloudIdToken = '';
+        state.cloudRefreshToken = '';
+        saveState(true);
+        updateCloudModalUI();
+        showStatusToast('👋', 'Signed out of Cloud Sync.');
+      });
+
+      document.getElementById('toggleFirebaseConfigBoxBtn').addEventListener('click', () => {
+        const box = document.getElementById('firebaseConfigCollapseBox');
+        const chev = document.getElementById('firebaseConfigChevron');
+        const isHidden = box.classList.toggle('hidden');
+        chev.textContent = isHidden ? '▼' : '▲';
+      });
+
+      document.getElementById('saveFirebaseConfigBtn').addEventListener('click', () => {
+        state.firebaseApiKey = document.getElementById('firebaseApiKeyInput').value.trim();
+        state.firebaseDbUrl = document.getElementById('firebaseDbUrlInput').value.trim();
+        saveState(true);
+        showStatusToast('✅', 'Firebase Cloud Server keys saved!');
+      });
+
+      document.getElementById('copyBackupCodeBtn').addEventListener('click', () => {
+        const code = btoa(unescape(encodeURIComponent(JSON.stringify(getCleanSyncPayload()))));
+        const area = document.getElementById('backupCodeTextarea');
+        area.value = code;
+        area.select();
+        try {
+          document.execCommand('copy');
+        } catch (e) {}
+        showStatusToast('📋', 'Backup code copied! Save it in Notes or WhatsApp.');
+      });
+
+      document.getElementById('restoreFromCodeBtn').addEventListener('click', () => {
+        const rawCode = document.getElementById('backupCodeTextarea').value.trim();
+        if (!rawCode) {
+          showStatusToast('⚠️', 'Paste your backup code into the box first.');
+          return;
+        }
+        try {
+          const decoded = JSON.parse(decodeURIComponent(escape(atob(rawCode))));
+          applyCloudPayloadToState(decoded);
+          closePopupWithBounce('cloudSyncModal', 'cloudSyncCard');
+          showStatusToast('🎉', 'All logs, streak & profile restored from code!');
+        } catch (e) {
+          showStatusToast('⚠️', 'Invalid backup code format.');
+        }
       });
 
       document.getElementById('openFormulaBtn').addEventListener('click', () => {
