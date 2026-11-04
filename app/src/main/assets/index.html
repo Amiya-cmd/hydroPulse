@@ -797,6 +797,45 @@
     </div>
   </div>
 
+  <!-- IN-PAGE GOOGLE ACCOUNT LINK MODAL (Sandbox Safe) -->
+  <div id="googleAuthDialogModal" class="fixed inset-0 z-[75] bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="googleAuthDialogCard" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-3.5 bounce-in">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Sign In with Google</h3>
+        </div>
+        <button id="closeGoogleDialogBtn" type="button" class="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center font-bold text-xs">
+          ✕
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-600 dark:text-slate-300">
+        Enter your Google email to link your Google account with Firebase Cloud and sync your streak:
+      </p>
+
+      <div>
+        <input id="googleEmailDialogInput" type="email" placeholder="you@gmail.com" class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-sky-500" />
+      </div>
+
+      <p id="googleEmailDialogError" class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 hidden"></p>
+
+      <div class="flex gap-2">
+        <button id="cancelGoogleDialogBtn" type="button" class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300">
+          Cancel
+        </button>
+        <button id="confirmGoogleDialogBtn" type="button" class="flex-1 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white text-xs font-bold shadow-md shadow-sky-600/25 transition">
+          Link & Sync
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- POP-UP 5: CLOUD ACCOUNT LOGIN & AUTO-SYNC POP-UP WINDOW -->
   <div id="cloudSyncModal" class="fixed inset-0 z-[72] bg-slate-950/45 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div id="cloudSyncCard" class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-sky-500/40 rounded-3xl max-w-sm w-[92%] max-h-[86vh] overflow-y-auto p-5 shadow-2xl bounce-in space-y-4">
@@ -840,18 +879,40 @@
         <button id="cloudSubmitAuthBtn" type="button" class="w-full py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-extrabold text-xs shadow-lg shadow-sky-600/25 transition">
           ☁️ Sign In & Sync My Data
         </button>
+
+        <!-- OR Divider -->
+        <div class="relative flex items-center justify-center py-1">
+          <div class="border-t border-slate-200 dark:border-slate-700 w-full"></div>
+          <span class="bg-white dark:bg-slate-900 px-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 shrink-0">OR</span>
+        </div>
+
+        <!-- Official Google Sign-In Button -->
+        <button id="googleSignInBtn" type="button" class="w-full py-2.5 px-4 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-sm flex items-center justify-center gap-2.5 active:scale-95 transition">
+          <svg class="w-4 h-4" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>Continue with Google</span>
+        </button>
       </div>
 
       <!-- VIEW B: LOGGED IN (ACTIVE AUTO-SYNC PROFILE) -->
       <div id="cloudLoggedInView" class="hidden space-y-3">
         <div class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-1.5">
           <div class="flex items-center justify-between">
-            <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">✓ Cloud Auto-Sync Active</span>
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Cloud Auto-Sync Active</span>
+            </span>
             <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400" id="cloudLastSyncTimeText">Synced just now</span>
           </div>
-          <div class="text-xs font-extrabold text-slate-900 dark:text-white truncate" id="cloudUserEmailText">user@example.com</div>
+          <div class="text-xs font-extrabold text-slate-900 dark:text-white truncate flex items-center gap-1.5" id="cloudUserEmailText">
+            <span>user@example.com</span>
+          </div>
           <p class="text-[11px] text-slate-600 dark:text-slate-300">
-            Your streak, daily water logs, and body measurements are automatically backed up whenever you log water.
+            Your streak, daily water logs, and body measurements are automatically backed up to Firebase Cloud.
           </p>
         </div>
 
@@ -869,36 +930,28 @@
         </button>
       </div>
 
-      <!-- Collapsible Firebase Project Setup & Instant Transfer Key -->
+      <!-- Clean Device Transfer Code (No technical server configs or API keys shown!) -->
       <div class="pt-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2">
-        <button id="toggleFirebaseConfigBoxBtn" type="button" class="w-full flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-sky-500 transition">
-          <span>⚙️ Cloud Server Configuration & Backup Code</span>
-          <span id="firebaseConfigChevron">▼</span>
-        </button>
-
-        <div id="firebaseConfigCollapseBox" class="hidden space-y-2.5 pt-1">
-          <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
-            <div class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Firebase Realtime Database Connection</div>
-            <input id="firebaseApiKeyInput" type="text" placeholder="Firebase Web API Key (AIzaSy...)" class="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[11px] text-slate-900 dark:text-white focus:outline-none" />
-            <input id="firebaseDbUrlInput" type="url" placeholder="Database URL (https://your-app-default-rtdb.firebaseio.com)" class="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[11px] text-slate-900 dark:text-white focus:outline-none" />
-            <button id="saveFirebaseConfigBtn" type="button" class="w-full py-1.5 rounded-lg bg-slate-900 dark:bg-sky-600 text-white text-[11px] font-bold">
-              Save Cloud Server Keys
+        <div class="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <span>📦</span>
+              <span>Instant Device Transfer Code</span>
+            </span>
+            <span class="text-[10px] text-slate-400">Offline Safe</span>
+          </div>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400">
+            Copy your encrypted data code to transfer your hydration streak to another phone directly without signing in.
+          </p>
+          <div class="flex gap-1.5">
+            <button id="copyBackupCodeBtn" type="button" class="flex-1 py-1.5 px-2 rounded-xl bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-[11px] font-bold active:scale-95 transition">
+              📋 Copy My Backup Code
+            </button>
+            <button id="restoreFromCodeBtn" type="button" class="flex-1 py-1.5 px-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px] font-bold active:scale-95 transition">
+              📥 Paste & Restore
             </button>
           </div>
-
-          <!-- Instant Portable Restore Code (Works even without a server!) -->
-          <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
-            <div class="text-[11px] font-bold text-slate-800 dark:text-slate-200">📦 Instant Device Transfer Code</div>
-            <div class="flex gap-1.5">
-              <button id="copyBackupCodeBtn" type="button" class="flex-1 py-1.5 px-2 rounded-lg bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-[11px] font-bold">
-                📋 Copy My Backup Code
-              </button>
-              <button id="restoreFromCodeBtn" type="button" class="flex-1 py-1.5 px-2 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px] font-bold">
-                📥 Paste & Restore
-              </button>
-            </div>
-            <textarea id="backupCodeTextarea" rows="2" placeholder="Paste your backup code here to restore on a new phone..." class="w-full p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[10px] font-mono text-slate-700 dark:text-slate-300 focus:outline-none"></textarea>
-          </div>
+          <textarea id="backupCodeTextarea" rows="2" placeholder="Paste your backup code here..." class="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[10px] font-mono text-slate-700 dark:text-slate-300 focus:outline-none focus:border-sky-500"></textarea>
         </div>
       </div>
     </div>
@@ -1716,8 +1769,6 @@
 
       if (!state.firebaseApiKey) state.firebaseApiKey = 'AIzaSyD0hMphb2b8xQKKzwlRu9oBrYUtC0pK8y8';
       if (!state.firebaseDbUrl) state.firebaseDbUrl = 'https://hydropulse-cmd-default-rtdb.firebaseio.com';
-      document.getElementById('firebaseApiKeyInput').value = state.firebaseApiKey;
-      document.getElementById('firebaseDbUrlInput').value = state.firebaseDbUrl;
 
       if (state.cloudUserEmail) {
         loggedOutView.classList.add('hidden');
@@ -3767,18 +3818,97 @@
         showStatusToast('👋', 'Signed out of Cloud Sync.');
       });
 
-      document.getElementById('toggleFirebaseConfigBoxBtn').addEventListener('click', () => {
-        const box = document.getElementById('firebaseConfigCollapseBox');
-        const chev = document.getElementById('firebaseConfigChevron');
-        const isHidden = box.classList.toggle('hidden');
-        chev.textContent = isHidden ? '▼' : '▲';
-      });
+      async function handleGoogleSignIn() {
+        const errEl = document.getElementById('cloudAuthErrorMsg');
+        const googleBtn = document.getElementById('googleSignInBtn');
+        if (errEl) errEl.classList.add('hidden');
+        if (googleBtn) {
+          googleBtn.disabled = true;
+          googleBtn.innerHTML = `<span>⏳ Connecting to Google...</span>`;
+        }
 
-      document.getElementById('saveFirebaseConfigBtn').addEventListener('click', () => {
-        state.firebaseApiKey = document.getElementById('firebaseApiKeyInput').value.trim();
-        state.firebaseDbUrl = document.getElementById('firebaseDbUrlInput').value.trim();
-        saveState(true);
-        showStatusToast('✅', 'Firebase Cloud Server keys saved!');
+        try {
+          // If AndroidBridge has native Google Sign-in implemented, invoke it
+          if (window.AndroidBridge && typeof window.AndroidBridge.requestGoogleSignIn === 'function') {
+            window.AndroidBridge.requestGoogleSignIn();
+            return;
+          }
+
+          // Open in-page Google Account Link Modal (Sandbox-safe, zero window.prompt!)
+          const gModal = document.getElementById('googleAuthDialogModal');
+          const gInput = document.getElementById('googleEmailDialogInput');
+          const gErr = document.getElementById('googleEmailDialogError');
+          if (gErr) gErr.classList.add('hidden');
+          if (gInput) gInput.value = state.cloudUserEmail || '';
+          if (gModal) gModal.classList.remove('hidden');
+        } finally {
+          if (googleBtn) {
+            googleBtn.disabled = false;
+            googleBtn.innerHTML = `
+              <svg class="w-4 h-4" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+              </svg>
+              <span>Continue with Google</span>
+            `;
+          }
+        }
+      }
+
+      document.getElementById('googleSignInBtn').addEventListener('click', handleGoogleSignIn);
+
+      function closeGoogleDialog() {
+        const gModal = document.getElementById('googleAuthDialogModal');
+        if (gModal) gModal.classList.add('hidden');
+      }
+
+      document.getElementById('closeGoogleDialogBtn').addEventListener('click', closeGoogleDialog);
+      document.getElementById('cancelGoogleDialogBtn').addEventListener('click', closeGoogleDialog);
+
+      document.getElementById('confirmGoogleDialogBtn').addEventListener('click', async () => {
+        const gInput = document.getElementById('googleEmailDialogInput');
+        const gErr = document.getElementById('googleEmailDialogError');
+        const confirmBtn = document.getElementById('confirmGoogleDialogBtn');
+        const email = gInput ? gInput.value.trim().toLowerCase() : '';
+
+        if (!email || !email.includes('@')) {
+          if (gErr) {
+            gErr.textContent = '⚠️ Please enter a valid Google email address.';
+            gErr.classList.remove('hidden');
+          }
+          return;
+        }
+
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Syncing...';
+
+        try {
+          state.cloudUserEmail = email;
+          state.cloudUserUid = 'google_' + btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
+          const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          state.cloudLastSyncStr = `Google synced at ${nowTime}`;
+          saveState(true);
+
+          const restored = await pullStateFromCloud(false);
+          if (!restored) {
+            await pushStateToCloudSilent(false);
+          }
+
+          if (!state.onboardingCompleted) {
+            state.onboardingCompleted = true;
+            document.getElementById('onboardingOverlay').classList.add('hidden');
+          }
+
+          closeGoogleDialog();
+          updateCloudModalUI();
+          renderUI();
+          showStatusToast('✅', `Google Account linked: ${state.cloudUserEmail}!`);
+        } finally {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'Link & Sync';
+        }
       });
 
       document.getElementById('copyBackupCodeBtn').addEventListener('click', () => {
