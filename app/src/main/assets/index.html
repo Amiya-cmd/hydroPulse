@@ -611,20 +611,7 @@
         </div>
       </div>
 
-      <!-- Quick Simulation / Testing Controls inside Streak Popup -->
-      <div class="pt-1 space-y-2 border-t border-slate-200/70 dark:border-slate-700/60">
-        <div class="grid grid-cols-2 gap-2">
-          <button id="simulateMissedDayBtn" type="button" class="py-2 px-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[11px] font-bold active:scale-95 transition">
-            ⚠️ Test Missed Goal
-          </button>
-          <button id="spinNewPunishmentBtn" type="button" class="py-2 px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-[11px] font-bold active:scale-95 transition">
-            🎲 New Random Task
-          </button>
-        </div>
-        <button id="simulateGoalMetDayBtn" type="button" class="w-full py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold active:scale-95 transition">
-          🎉 Simulate Goal Completed (+1 Streak Day)
-        </button>
-      </div>
+
     </div>
   </div>
 
@@ -1052,10 +1039,10 @@
           <div class="text-2xl leading-none" id="topStreakIcon">🔥</div>
           <div class="min-w-0 flex-1">
             <div class="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center justify-between">
-              <span>Streak</span>
-              <span id="streakWarningTriangle" class="hidden text-rose-500 text-xs animate-bounce" title="Penalty task required to restore streak!">⚠️</span>
+              <span id="topStreakBoxLabel">Streak</span>
+              <span id="streakWarningTriangle" class="hidden text-rose-500 text-xs animate-bounce" title="Streak broken! Tap to view recovery task">⚠️</span>
             </div>
-            <div class="text-sm font-extrabold text-slate-900 dark:text-white truncate"><span id="streakCountText">0</span> Days</div>
+            <div class="text-sm font-extrabold text-slate-900 dark:text-white truncate" id="topStreakMainValue"><span id="streakCountText">0</span> Days</div>
           </div>
         </button>
 
@@ -1206,7 +1193,7 @@
     // HYDROPULSE v5 — CLEAN UI, SCROLLABLE WHEELS, BOUNCY POPUPS & STREAK RECOVERY
     // =========================================================================
 
-    const STORAGE_KEY = 'hydropulse_android_state_v5';
+    const STORAGE_KEY = 'hydropulse_android_state_v6';
 
     const PUNISHMENT_POOL = [
       { emoji: '🏃', text: 'Do 25 Jumping Jacks right now & drink a 200 ml bonus glass of water!' },
@@ -1307,10 +1294,10 @@
       drinkLogs: [],
       streakDays: 0,
       bestStreak: 0,
-      savedStreakBeforeMiss: 1,
+      savedStreakBeforeMiss: 0,
       streakMissedWarning: false,
       streakAcceptedTask: false,
-      weekHistory: [false, false, false, false, false, false, false],
+      completedDatesMap: {},
       previewPunishmentIndex: 0,
       soundEnabled: true,
       themePref: 'system'
@@ -1349,9 +1336,12 @@
     }
 
     // =========================================================================
-    // AUTOMATIC NEXT-DAY MIDNIGHT RESET & MISSED GOAL STREAK CHECK
+    // AUTOMATIC NEXT-DAY MIDNIGHT RESET & CALENDAR-ACCURATE STREAK CHECK
     // =========================================================================
     function checkAndHandleDayRollover() {
+      if (!state.completedDatesMap || typeof state.completedDatesMap !== 'object') {
+        state.completedDatesMap = {};
+      }
       const todayStr = getLocalDateString();
       if (!state.lastActiveDateStr) {
         state.lastActiveDateStr = todayStr;
@@ -1360,21 +1350,35 @@
       }
       if (state.lastActiveDateStr !== todayStr) {
         const metrics = calculateWaterMetrics();
-        const metGoalYesterday = state.currentIntakeMl >= metrics.totalDailyMl && metrics.totalDailyMl > 0;
+        const metGoalOnLastActiveDay = state.currentIntakeMl >= metrics.totalDailyMl && metrics.totalDailyMl > 0;
+        if (metGoalOnLastActiveDay) {
+          state.completedDatesMap[state.lastActiveDateStr] = true;
+        }
 
-        // Shift 7-day history window
-        state.weekHistory = state.weekHistory.slice(1, 6).concat([metGoalYesterday, false]);
+        // Check how many calendar days passed since lastActiveDateStr
+        const lastParts = state.lastActiveDateStr.split('-').map(Number);
+        const currParts = todayStr.split('-').map(Number);
+        const lastDateObj = new Date(lastParts[0], lastParts[1] - 1, lastParts[2]);
+        const currDateObj = new Date(currParts[0], currParts[1] - 1, currParts[2]);
+        const diffDays = Math.round((currDateObj - lastDateObj) / (1000 * 60 * 60 * 24));
 
-        if (!metGoalYesterday && state.onboardingCompleted) {
-          // User missed yesterday's target! Set streak to 0 and show warning triangle ⚠️
-          state.savedStreakBeforeMiss = Math.max(1, state.streakDays || 1);
+        // If user had an active streak (or used the app on a previous day) and missed yesterday's goal (or skipped days)
+        const missedPreviousDay = (!metGoalOnLastActiveDay || diffDays > 1);
+        if (missedPreviousDay && state.onboardingCompleted && state.streakDays > 0) {
+          state.savedStreakBeforeMiss = state.streakDays;
           state.streakDays = 0;
+          state.streakMissedWarning = true;
+          state.streakAcceptedTask = false;
+          state.previewPunishmentIndex = Math.floor(Math.random() * PUNISHMENT_POOL.length);
+        } else if (missedPreviousDay && state.onboardingCompleted && state.streakDays === 0) {
+          // Even if streak was 0, if they missed yesterday after onboarding, show warning & task
+          state.savedStreakBeforeMiss = 0;
           state.streakMissedWarning = true;
           state.streakAcceptedTask = false;
           state.previewPunishmentIndex = Math.floor(Math.random() * PUNISHMENT_POOL.length);
         }
 
-        // Automatically reset today's water consumption & drink log to 0!
+        // Reset today's water consumption & drink log to 0 for the new calendar day!
         state.currentIntakeMl = 0;
         state.drinkLogs = [];
         state.lastActiveDateStr = todayStr;
@@ -2107,12 +2111,13 @@
         settingsShortBadge.textContent = `${state.age}y • ${heightDisplay} • ${weightDisplay} →`;
       }
 
-      // Top Streak Box & Missed Goal Warning Triangle ⚠️
-      document.getElementById('streakCountText').textContent = state.streakMissedWarning ? 0 : state.streakDays;
+      // Top Streak Box & "Streak Broken ⚠️" Display when streak is discontinued
       document.getElementById('bestStreakText').textContent = Math.max(state.bestStreak, state.streakDays);
 
       const warningTri = document.getElementById('streakWarningTriangle');
       const topStreakCard = document.getElementById('topStreakCard');
+      const topStreakBoxLabel = document.getElementById('topStreakBoxLabel');
+      const topStreakMainValue = document.getElementById('topStreakMainValue');
       const missedBox = document.getElementById('streakMissedPenaltyBox');
       const normalBox = document.getElementById('streakNormalStatusBox');
       const acceptDenyRow = document.getElementById('penaltyAcceptDenyRow');
@@ -2127,7 +2132,14 @@
       if (state.streakMissedWarning) {
         warningTri.classList.remove('hidden');
         document.getElementById('topStreakIcon').textContent = '⚠️';
-        topStreakCard.className = 'text-left bg-gradient-to-br from-rose-500/15 to-amber-500/15 border-2 border-rose-500/50 rounded-2xl p-3 flex items-center gap-2 active:scale-95 transition shadow-sm relative';
+        if (topStreakBoxLabel) {
+          topStreakBoxLabel.textContent = 'Streak Broken';
+          topStreakBoxLabel.className = 'text-[9px] font-extrabold uppercase tracking-tight text-rose-600 dark:text-rose-400 truncate';
+        }
+        if (topStreakMainValue) {
+          topStreakMainValue.innerHTML = `<span id="streakCountText">0</span> Days ⚠️`;
+        }
+        topStreakCard.className = 'text-left bg-gradient-to-br from-rose-500/15 to-amber-500/15 border-2 border-rose-500/60 rounded-2xl p-3 flex items-center gap-2 active:scale-95 transition shadow-sm relative';
         missedBox.classList.remove('hidden');
         normalBox.classList.add('hidden');
         if (state.streakAcceptedTask) {
@@ -2140,6 +2152,13 @@
       } else {
         warningTri.classList.add('hidden');
         document.getElementById('topStreakIcon').textContent = '🔥';
+        if (topStreakBoxLabel) {
+          topStreakBoxLabel.textContent = 'Streak';
+          topStreakBoxLabel.className = 'text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400';
+        }
+        if (topStreakMainValue) {
+          topStreakMainValue.innerHTML = `<span id="streakCountText">${state.streakDays}</span> Days`;
+        }
         topStreakCard.className = 'text-left bg-gradient-to-br from-amber-500/10 to-orange-500/10 dark:from-amber-500/15 dark:to-orange-500/10 hover:from-amber-500/20 border border-amber-500/35 rounded-2xl p-3 flex items-center gap-2 active:scale-95 transition shadow-sm relative';
         missedBox.classList.add('hidden');
         normalBox.classList.remove('hidden');
@@ -2320,24 +2339,52 @@
         pulseDot.classList.add('bg-slate-400');
       }
 
-      // Weekly streak grid
-      const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Today'];
+      // Calendar-Accurate 7-Day Streak Grid (Shows Real Weekday Name + Date for Last 7 Days)
+      const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const streakGrid = document.getElementById('weeklyStreakGrid');
       const todayDone = state.currentIntakeMl >= metrics.totalDailyMl && metrics.totalDailyMl > 0;
-      const historyCopy = state.weekHistory.slice(0, 6).concat([todayDone]);
+      if (!state.completedDatesMap || typeof state.completedDatesMap !== 'object') {
+        state.completedDatesMap = {};
+      }
+      const todayKey = getLocalDateString();
+      if (todayDone) {
+        state.completedDatesMap[todayKey] = true;
+      } else {
+        delete state.completedDatesMap[todayKey];
+      }
 
-      streakGrid.innerHTML = dayLabels
-        .map((d, idx) => {
-          const hit = historyCopy[idx];
+      const nowDate = new Date();
+      const last7Days = [];
+      for (let offset = 6; offset >= 0; offset--) {
+        const d = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate() - offset);
+        const dateKey = getLocalDateString(d);
+        const dayName = weekdayNames[d.getDay()];
+        const dateNum = d.getDate();
+        const monShort = monthNames[d.getMonth()];
+        const isToday = offset === 0;
+        const hit = isToday ? todayDone : Boolean(state.completedDatesMap[dateKey]);
+        last7Days.push({ dayName, dateNum, monShort, isToday, hit });
+      }
+
+      streakGrid.innerHTML = last7Days
+        .map((item) => {
           return `
-            <div class="flex flex-col items-center gap-1 p-1.5 rounded-xl ${idx === 6 ? 'bg-sky-500/10 border border-sky-500/30' : ''}">
-              <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400">${d}</span>
+            <div class="flex flex-col items-center gap-0.5 py-1.5 px-1 rounded-xl ${
+              item.isToday
+                ? 'bg-sky-500/15 border border-sky-500/40 shadow-sm'
+                : ''
+            }">
+              <span class="text-[10px] font-extrabold ${
+                item.isToday ? 'text-sky-600 dark:text-sky-400' : 'text-slate-600 dark:text-slate-300'
+              }">${item.dayName}</span>
+              <span class="text-[9px] font-medium text-slate-400 dark:text-slate-500 mb-0.5">${item.dateNum} ${item.monShort}</span>
               <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                hit
+                item.hit
                   ? 'bg-emerald-500 text-white shadow-sm'
                   : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
               }">
-                ${hit ? '✓' : '0'}
+                ${item.hit ? '✓' : '0'}
               </span>
             </div>
           `;
@@ -3044,39 +3091,14 @@
       });
 
       document.getElementById('completeAcceptedPenaltyBtn').addEventListener('click', () => {
-        state.streakDays = Math.max(1, state.savedStreakBeforeMiss || 1);
+        state.streakDays = Math.max(0, Number(state.savedStreakBeforeMiss) || 0);
         state.streakMissedWarning = false;
         state.streakAcceptedTask = false;
         playGoalAchievedSound();
         renderUI();
-        showStatusToast('🔥', `Task completed! Your ${state.streakDays}-day streak is restored!`);
-      });
-
-      document.getElementById('simulateMissedDayBtn').addEventListener('click', () => {
-        state.savedStreakBeforeMiss = Math.max(1, state.streakDays || 3);
-        state.streakDays = 0;
-        state.streakMissedWarning = true;
-        state.streakAcceptedTask = false;
-        state.previewPunishmentIndex = Math.floor(Math.random() * PUNISHMENT_POOL.length);
-        renderUI();
-        showStatusToast('⚠️', 'Simulated missed daily goal — accept task to restore streak!');
-      });
-
-      document.getElementById('spinNewPunishmentBtn').addEventListener('click', () => {
-        state.previewPunishmentIndex = (state.previewPunishmentIndex + 1) % PUNISHMENT_POOL.length;
-        playWaterPourSound(100);
-        renderUI();
-      });
-
-      document.getElementById('simulateGoalMetDayBtn').addEventListener('click', () => {
-        const metrics = calculateWaterMetrics();
-        if (state.currentIntakeMl < metrics.totalDailyMl) state.currentIntakeMl = metrics.totalDailyMl;
-        state.streakDays += 1;
-        state.bestStreak = Math.max(state.bestStreak, state.streakDays);
-        state.streakMissedWarning = false;
-        playGoalAchievedSound();
-        renderUI();
-        showStatusToast('🔥', `Goal completed! Streak is now ${state.streakDays} days!`);
+        showStatusToast('🔥', state.streakDays > 0
+          ? `Task completed! Your ${state.streakDays}-day streak is restored!`
+          : 'Task completed! Penalty cleared — hit your goal today to start your streak!');
       });
 
       // Interval Choice Buttons (15m / 30m / 60m)
