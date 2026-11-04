@@ -76,6 +76,27 @@
     .pulse-indicator {
       animation: pulseRing 2s infinite;
     }
+    .tutorial-spotlight-target {
+      position: relative !important;
+      z-index: 69 !important;
+      box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.95), 0 0 25px rgba(14, 165, 233, 0.65) !important;
+      border-radius: 1rem;
+      transition: box-shadow 0.25s ease;
+    }
+    @keyframes arrowBobUp {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    @keyframes arrowBobDown {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(5px); }
+    }
+    .animate-arrow-up {
+      animation: arrowBobUp 1s ease-in-out infinite;
+    }
+    .animate-arrow-down {
+      animation: arrowBobDown 1s ease-in-out infinite;
+    }
     /* Scrollable drum wheel styling */
     .wheel-scroll {
       scroll-snap-type: y mandatory;
@@ -152,8 +173,19 @@
   <div id="onboardingOverlay" class="fixed inset-0 z-[70] bg-slate-950/75 backdrop-blur-md hidden flex items-center justify-center p-4 overflow-y-auto">
     <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative my-auto gpu-smooth">
 
-      <!-- Top Progress Dots & Skip to Next Button (Hidden on Step 3!) -->
-      <div class="flex items-center justify-between mb-4">
+      <!-- Standalone Edit Header (Shown ONLY when opened from Settings) -->
+      <div id="standaloneProfileHeader" class="hidden flex items-center justify-between mb-3 pb-2 border-b border-slate-200 dark:border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">👤</span>
+          <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Edit Body Measurements</h3>
+        </div>
+        <button id="closeStandaloneProfileBtn" type="button" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center font-bold text-sm transition">
+          ✕
+        </button>
+      </div>
+
+      <!-- Top Progress Dots & Skip to Next Button (Hidden on Step 3 & Standalone mode!) -->
+      <div id="onboardWizardTopBar" class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-1.5" id="onboardProgressDots">
           <span class="w-6 h-1.5 rounded-full bg-sky-500 transition-all"></span>
           <span class="w-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 transition-all"></span>
@@ -223,8 +255,8 @@
       <div id="onboardStep3" class="onboard-step space-y-3.5 hidden py-1 animate-step">
         <div class="flex items-center justify-between">
           <div>
-            <span class="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">Step 3 of 5 • Compulsory Profile</span>
-            <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">Your Body Profile</h2>
+            <span id="step3SubBadge" class="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">Step 3 of 5 • Compulsory Profile</span>
+            <h2 id="step3Headline" class="text-lg font-extrabold text-slate-900 dark:text-white">Your Body Profile</h2>
           </div>
           <span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-sky-500/15 text-sky-600 dark:text-sky-400" id="onboardBasePreviewText">Base: 2,620 ml</span>
         </div>
@@ -312,9 +344,9 @@
           Your gender, age, height, and weight are necessary to accurately calculate your body's baseline daily water consumption limit.
         </p>
 
-        <!-- Compulsory Continue Button (No Skip Button on Step 3!) -->
+        <!-- Compulsory Continue / Standalone Save Button (No Skip Button on Step 3!) -->
         <div class="pt-1 flex items-center gap-2">
-          <button type="button" data-back-step="3" class="onboard-back-btn px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300">
+          <button id="step3BackBtn" type="button" data-back-step="3" class="onboard-back-btn px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300">
             ← Back
           </button>
           <button id="onboardNext3Btn" type="button" class="flex-1 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-bold text-sm shadow-lg shadow-sky-600/25 transition">
@@ -450,44 +482,59 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- 3. INTERACTIVE APP FEATURE TUTORIAL POPUP (Shown on First Home Open)  -->
+  <!-- 3. CONTEXTUAL ANCHORED FEATURE TUTORIAL WITH DIRECTIONAL ARROWS       -->
   <!-- ===================================================================== -->
-  <div id="featureTutorialModal" class="fixed inset-0 z-[68] bg-slate-950/45 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div id="featureTutorialCard" class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-sky-500/40 rounded-3xl max-w-sm w-[92%] p-5 shadow-2xl bounce-in">
-      <div class="flex items-center justify-between mb-3">
-        <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-sky-500/15 text-sky-600 dark:text-sky-400" id="tutorialStepBadge">
-          Quick Tour • 1 of 4
+  <div id="featureTutorialModal" class="fixed inset-0 z-[68] bg-slate-950/25 hidden">
+    <div id="featureTutorialCard" class="fixed z-[70] w-[88vw] max-w-[330px] bg-white/75 dark:bg-slate-900/75 backdrop-blur-md border-2 border-sky-400/70 rounded-2xl p-4 shadow-2xl transition-all duration-300 bounce-in">
+
+      <!-- Top Directional Pointer Arrow (Points UP at target above the box) -->
+      <div id="tutorialArrowTop" class="hidden absolute -top-6 flex flex-col items-center pointer-events-none animate-arrow-up" style="left: 50%; transform: translateX(-50%);">
+        <span class="text-sky-400 text-xl leading-none drop-shadow-md">⬆️</span>
+      </div>
+
+      <div class="flex items-center justify-between mb-1.5">
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-sky-500/20 text-sky-700 dark:text-sky-300" id="tutorialStepBadge">
+          1 of 6
         </span>
-        <button id="skipTutorialBtn" type="button" class="text-xs font-bold text-slate-400 hover:text-slate-700 dark:hover:text-white transition">
+        <button id="skipTutorialBtn" type="button" class="text-[11px] font-bold text-slate-500 dark:text-slate-300 hover:text-sky-500 transition">
           Skip Tour
         </button>
       </div>
 
-      <div class="text-center py-3 space-y-2">
-        <div class="w-14 h-14 mx-auto rounded-2xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-3xl" id="tutorialEmojiIcon">
-          👆
+      <div class="flex items-start gap-2.5 my-2">
+        <div class="w-10 h-10 shrink-0 rounded-xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-xl" id="tutorialEmojiIcon">
+          🔥
         </div>
-        <h3 class="text-lg font-extrabold text-slate-900 dark:text-white" id="tutorialTitleText">
-          Tap the Top 3 Smart Boxes
-        </h3>
-        <p class="text-xs leading-relaxed text-slate-600 dark:text-slate-300" id="tutorialBodyText">
-          Tap the Streak, Reminder, or Weather boxes at the top of your home screen anytime to open bouncy pop-up windows with full details and controls.
-        </p>
+        <div class="min-w-0">
+          <h3 class="text-sm font-extrabold text-slate-900 dark:text-white leading-snug" id="tutorialTitleText">
+            Streak & Penalty Box
+          </h3>
+          <p class="text-[11px] leading-relaxed text-slate-700 dark:text-slate-200 mt-0.5" id="tutorialBodyText">
+            Tap here to view your 7-day hydration streak or complete recovery tasks if you miss a daily goal.
+          </p>
+        </div>
       </div>
 
-      <div class="flex items-center justify-between gap-2 mt-4">
-        <button id="tutorialPrevBtn" type="button" class="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 disabled:opacity-40">
+      <div class="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-slate-300/50 dark:border-slate-700/60">
+        <button id="tutorialPrevBtn" type="button" class="px-2.5 py-1.5 rounded-xl bg-white/70 dark:bg-slate-800/70 border border-slate-300/70 dark:border-slate-700 text-[11px] font-bold text-slate-700 dark:text-slate-200 disabled:opacity-35">
           ← Prev
         </button>
         <div class="flex items-center gap-1" id="tutorialDots">
-          <span class="w-4 h-1.5 rounded-full bg-sky-500"></span>
-          <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
-          <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
-          <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+          <span class="w-3.5 h-1.5 rounded-full bg-sky-500"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600"></span>
         </div>
-        <button id="tutorialNextBtn" type="button" class="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-xs font-bold text-white shadow-md shadow-sky-600/20 transition">
+        <button id="tutorialNextBtn" type="button" class="px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-[11px] font-bold text-white shadow-sm transition">
           Next →
         </button>
+      </div>
+
+      <!-- Bottom Directional Pointer Arrow (Points DOWN at target below the box) -->
+      <div id="tutorialArrowBottom" class="hidden absolute -bottom-6 flex flex-col items-center pointer-events-none animate-arrow-down" style="left: 50%; transform: translateX(-50%);">
+        <span class="text-sky-400 text-xl leading-none drop-shadow-md">⬇️</span>
       </div>
     </div>
   </div>
@@ -616,7 +663,7 @@
         </div>
       </div>
 
-      <!-- Mode Switcher: Auto | Manual | Timer -->
+      <!-- Mode Switcher: Auto (Wake/Sleep) | Manual (Start/Pause) | Schedule Timer -->
       <div class="grid grid-cols-3 gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700">
         <button type="button" data-track-mode="auto" class="track-mode-btn py-2 px-2 rounded-xl text-xs font-bold transition">
           🔄 Auto
@@ -629,59 +676,62 @@
         </button>
       </div>
 
-      <!-- Start & End Time Pickers -->
-      <div class="grid grid-cols-2 gap-2">
-        <div class="bg-slate-50/90 dark:bg-slate-800/80 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <label for="wakeStartTimeInput" class="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">☀️ Start Time</label>
-          <input id="wakeStartTimeInput" type="time" value="07:00" class="w-full text-sm font-extrabold bg-transparent text-slate-900 dark:text-white mt-0.5 focus:outline-none" />
+      <!-- OPTION 1 PANEL: AUTO ACTIVE HOURS (Shown ONLY when "Auto Hours" is selected) -->
+      <div id="modePanelAuto" class="space-y-2.5 animate-step">
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-slate-50/90 dark:bg-slate-800/80 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <label for="wakeStartTimeInput" class="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">☀️ Start Time</label>
+            <input id="wakeStartTimeInput" type="time" value="07:00" class="w-full text-sm font-extrabold bg-transparent text-slate-900 dark:text-white mt-0.5 focus:outline-none" />
+          </div>
+          <div class="bg-slate-50/90 dark:bg-slate-800/80 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <label for="sleepEndTimeInput" class="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">🌙 End Time</label>
+            <input id="sleepEndTimeInput" type="time" value="23:00" class="w-full text-sm font-extrabold bg-transparent text-slate-900 dark:text-white mt-0.5 focus:outline-none" />
+          </div>
         </div>
-        <div class="bg-slate-50/90 dark:bg-slate-800/80 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <label for="sleepEndTimeInput" class="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">🌙 End Time</label>
-          <input id="sleepEndTimeInput" type="time" value="23:00" class="w-full text-sm font-extrabold bg-transparent text-slate-900 dark:text-white mt-0.5 focus:outline-none" />
+
+        <div class="flex items-center justify-between gap-2 bg-slate-50/90 dark:bg-slate-800/80 px-3 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">Active Hours Preset:</span>
+          <div class="flex items-center gap-1.5">
+            <button id="preset15hBtn" type="button" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 hover:bg-sky-500 hover:text-white text-xs font-bold transition">
+              15 Hrs
+            </button>
+            <button id="preset16hBtn" type="button" class="px-2.5 py-1 rounded-lg bg-sky-500 text-white text-xs font-bold transition">
+              16 Hrs
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- 15h / 16h Quick Window Presets -->
-      <div class="flex items-center justify-between gap-2 bg-slate-50/90 dark:bg-slate-800/80 px-3 py-2 rounded-2xl border border-slate-200 dark:border-slate-700">
-        <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">Waking Window:</span>
-        <div class="flex items-center gap-1.5">
-          <button id="preset15hBtn" type="button" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 hover:bg-sky-500 hover:text-white text-xs font-bold transition">
-            15 Hrs
-          </button>
-          <button id="preset16hBtn" type="button" class="px-2.5 py-1 rounded-lg bg-sky-500 text-white text-xs font-bold transition">
-            16 Hrs
-          </button>
-        </div>
-      </div>
-
-      <!-- Active State & Session Timer Control -->
-      <div class="bg-slate-50/90 dark:bg-slate-800/80 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2.5">
+      <!-- OPTION 2 PANEL: MANUAL START / PAUSE (Shown ONLY when "Manual" is selected) -->
+      <div id="modePanelManual" class="hidden bg-slate-50/90 dark:bg-slate-800/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2.5 animate-step">
         <div class="flex items-center justify-between gap-2">
           <div>
             <div class="text-xs font-bold text-slate-900 dark:text-white" id="trackerStateHeadline">Tracker Running</div>
             <div class="text-[10px] text-slate-500 dark:text-slate-400" id="formulaInlineBreakdown">3050 ml ÷ 32 slots = 100 ml / 30m</div>
           </div>
-          <button id="toggleTrackerRunBtn" type="button" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold active:scale-95 transition">
+          <button id="toggleTrackerRunBtn" type="button" class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold active:scale-95 transition">
             ⏸️ Pause
           </button>
         </div>
-
-        <div class="pt-2 border-t border-slate-200/70 dark:border-slate-700/60 flex items-center justify-between gap-2">
-          <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">
-            Timer: <span class="font-extrabold text-sky-600 dark:text-sky-400" id="sessionTimerDisplay">16:00:00</span>
-          </span>
-          <div class="flex items-center gap-1">
-            <button type="button" data-session-hrs="2" class="session-dur-btn px-2 py-1 rounded-lg bg-white dark:bg-slate-700 text-[11px] font-bold">2h</button>
-            <button type="button" data-session-hrs="8" class="session-dur-btn px-2 py-1 rounded-lg bg-white dark:bg-slate-700 text-[11px] font-bold">8h</button>
-            <button type="button" data-session-hrs="15" class="session-dur-btn px-2 py-1 rounded-lg bg-white dark:bg-slate-700 text-[11px] font-bold">15h</button>
-            <button type="button" data-session-hrs="16" class="session-dur-btn px-2 py-1 rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-400 text-[11px] font-bold">16h</button>
-          </div>
-        </div>
-
-        <button id="test30MinAlertBtn" type="button" class="w-full py-2 px-3 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-bold active:scale-95 transition">
-          🔔 Test Reminder Notification Now
-        </button>
       </div>
+
+      <!-- OPTION 3 PANEL: SCHEDULE TIMER (Shown ONLY when "Schedule Timer" is selected) -->
+      <div id="modePanelTimer" class="hidden bg-slate-50/90 dark:bg-slate-800/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2.5 animate-step">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Countdown Timer:</span>
+          <span class="text-sm font-extrabold text-sky-600 dark:text-sky-400" id="sessionTimerDisplay">16:00:00</span>
+        </div>
+        <div class="grid grid-cols-4 gap-1.5 pt-1">
+          <button type="button" data-session-hrs="2" class="session-dur-btn py-1.5 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-bold">2h</button>
+          <button type="button" data-session-hrs="8" class="session-dur-btn py-1.5 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-bold">8h</button>
+          <button type="button" data-session-hrs="15" class="session-dur-btn py-1.5 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs font-bold">15h</button>
+          <button type="button" data-session-hrs="16" class="session-dur-btn py-1.5 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-600 dark:text-sky-400 text-xs font-bold">16h</button>
+        </div>
+      </div>
+
+      <button id="test30MinAlertBtn" type="button" class="w-full py-2 px-3 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-bold active:scale-95 transition">
+        🔔 Test Reminder Notification Now
+      </button>
     </div>
   </div>
 
@@ -1029,7 +1079,7 @@
       </div>
 
       <!-- Smooth 60FPS Animated Liquid Tank Card -->
-      <div class="relative rounded-3xl overflow-hidden border border-sky-200 dark:border-sky-900/70 bg-gradient-to-b from-sky-50/90 to-white dark:from-slate-900 dark:to-slate-900 shadow-lg">
+      <div id="heroWaterTankCard" class="relative rounded-3xl overflow-hidden border border-sky-200 dark:border-sky-900/70 bg-gradient-to-b from-sky-50/90 to-white dark:from-slate-900 dark:to-slate-900 shadow-lg">
         <canvas id="waterWaveCanvas" class="w-full h-64 block gpu-smooth"></canvas>
 
         <div class="absolute inset-0 flex flex-col justify-between p-5 pointer-events-none">
@@ -1072,7 +1122,7 @@
       </div>
 
       <!-- ONE-TAP WATER INTAKE TRACKER -->
-      <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4">
+      <div id="heroDrinkPresetsCard" class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4">
         <div class="flex items-center justify-between mb-3">
           <div>
             <h2 class="text-sm font-extrabold text-slate-900 dark:text-white">🚰 Tap to Log Water</h2>
@@ -1171,24 +1221,46 @@
 
     const TUTORIAL_STEPS = [
       {
-        emoji: '👆',
-        title: 'Tap the Top 3 Smart Boxes',
-        body: 'Tap the Streak, Reminder, or Weather boxes at the top of your home screen anytime to open bouncy pop-up windows with full details and controls.'
+        targetId: 'topStreakCard',
+        arrowDir: 'up',
+        emoji: '🔥',
+        title: 'Streak & Penalty Box',
+        body: 'Tap here to check your 7-day hydration streak or complete recovery tasks if you miss a daily goal.'
       },
       {
+        targetId: 'topReminderCard',
+        arrowDir: 'up',
+        emoji: '⏱️',
+        title: 'Reminder & Schedule Box',
+        body: 'Tap here to switch between 15m/30m/60m intervals and Auto Hours, Manual, or Schedule Timer modes.'
+      },
+      {
+        targetId: 'topWeatherCard',
+        arrowDir: 'up',
+        emoji: '☀️',
+        title: 'Weather & GPS Box',
+        body: 'Tap here to view how local temperature and weather adjust your daily hydration target.'
+      },
+      {
+        targetId: 'heroWaterTankCard',
+        arrowDir: 'up',
         emoji: '🌊',
         title: 'Live Water Tank & Countdown',
-        body: 'Watch your daily water tank fill smoothly at 60fps. The bottom bar of the tank shows your persistent countdown timer that never resets if you close the app.'
+        body: 'Shows your live daily water progress and persistent countdown timer with a 1-tap +Drink button.'
       },
       {
+        targetId: 'heroDrinkPresetsCard',
+        arrowDir: 'down',
         emoji: '🥛',
         title: 'One-Tap Cup Presets',
-        body: 'Tap any cup size from +100 ml to +1000 ml below the tank to log your water intake instantly with splash sound effects—no typing required.'
+        body: 'Tap any cup size (+100 ml to +1000 ml) here to log water immediately with splash sound effects.'
       },
       {
+        targetId: 'openSettingsDrawerBtn',
+        arrowDir: 'up',
         emoji: '⚙️',
-        title: 'Slide-Out Settings Sidebar',
-        body: 'Tap the gear icon in the top-right corner to slide open the Settings sidebar for Light/Dark themes, permissions, body profile, and this tutorial.'
+        title: 'Settings Sidebar',
+        body: 'Tap this gear icon to slide open Settings for Themes, Permissions, Body Profile, and Tutorial.'
       }
     ];
 
@@ -1249,6 +1321,7 @@
     let wakeLockSentinel = null;
     let currentOnboardStep = 1;
     let currentTutorialStep = 0;
+    let isEditingProfileStandalone = false;
 
     function loadState() {
       try {
@@ -1821,11 +1894,9 @@
         try {
           window.AndroidBridge.requestNotificationPermission();
           state.pushNotificationsEnabled = true;
-          state.backgroundModeEnabled = true;
-          startBackgroundAudioAndMediaSession();
           syncScheduleWithServiceWorker();
           renderUI();
-          showStatusToast('✅', 'Phone Notification Permission enabled!');
+          showStatusToast('✅', 'Requested phone notification permission!');
           return true;
         } catch (e) {}
       }
@@ -1835,7 +1906,6 @@
           const perm = await Notification.requestPermission();
           if (perm === 'granted') {
             state.pushNotificationsEnabled = true;
-            startBackgroundAudioAndMediaSession();
             syncScheduleWithServiceWorker();
             renderUI();
             showStatusToast('✅', 'Phone notifications enabled!');
@@ -1850,10 +1920,9 @@
       }
 
       state.pushNotificationsEnabled = true;
-      state.backgroundModeEnabled = true;
-      startBackgroundAudioAndMediaSession();
+      syncScheduleWithServiceWorker();
       renderUI();
-      showStatusToast('🔔', 'Background Audio & Lock-Screen Reminder active!');
+      showStatusToast('🔔', 'Notifications enabled!');
       return true;
     }
 
@@ -2219,6 +2288,15 @@
         }
       });
 
+      const panelAuto = document.getElementById('modePanelAuto');
+      const panelManual = document.getElementById('modePanelManual');
+      const panelTimer = document.getElementById('modePanelTimer');
+      if (panelAuto && panelManual && panelTimer) {
+        panelAuto.classList.toggle('hidden', state.trackingMode !== 'auto');
+        panelManual.classList.toggle('hidden', state.trackingMode !== 'manual');
+        panelTimer.classList.toggle('hidden', state.trackingMode !== 'timer');
+      }
+
       const activeBadge = document.getElementById('trackerActiveBadge');
       const toggleRunBtn = document.getElementById('toggleTrackerRunBtn');
       const stateHeadline = document.getElementById('trackerStateHeadline');
@@ -2509,29 +2587,50 @@
     // =========================================================================
     // ONBOARDING & INTERACTIVE FEATURE TUTORIAL NAVIGATION
     // =========================================================================
-    function showOnboardingStep(stepNum) {
+    function showOnboardingStep(stepNum, standaloneProfileMode = false) {
+      isEditingProfileStandalone = standaloneProfileMode;
       currentOnboardStep = stepNum;
       for (let i = 1; i <= 5; i++) {
         const el = document.getElementById(`onboardStep${i}`);
         if (el) el.classList.toggle('hidden', i !== stepNum);
       }
-      const dotsContainer = document.getElementById('onboardProgressDots');
-      if (dotsContainer) {
-        Array.from(dotsContainer.children).forEach((dot, idx) => {
-          if (idx + 1 === stepNum) dot.className = 'w-6 h-1.5 rounded-full bg-sky-500 transition-all';
-          else if (idx + 1 < stepNum) dot.className = 'w-2.5 h-1.5 rounded-full bg-sky-400/60 transition-all';
-          else dot.className = 'w-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 transition-all';
-        });
-      }
 
-      // Hide top "Skip to Next" button on Step 3 because Age, Height & Weight are COMPULSORY!
-      const topSkip = document.getElementById('onboardTopSkipBtn');
-      if (topSkip) {
-        if (stepNum === 3) {
-          topSkip.classList.add('hidden');
-        } else {
-          topSkip.classList.remove('hidden');
-          topSkip.textContent = stepNum < 5 ? 'Skip to Next →' : 'Skip to App →';
+      const wizardTopBar = document.getElementById('onboardWizardTopBar');
+      const standaloneHeader = document.getElementById('standaloneProfileHeader');
+      const step3BackBtn = document.getElementById('step3BackBtn');
+      const next3Btn = document.getElementById('onboardNext3Btn');
+      const step3SubBadge = document.getElementById('step3SubBadge');
+
+      if (standaloneProfileMode) {
+        if (wizardTopBar) wizardTopBar.classList.add('hidden');
+        if (standaloneHeader) standaloneHeader.classList.remove('hidden');
+        if (step3BackBtn) step3BackBtn.classList.add('hidden');
+        if (next3Btn) next3Btn.textContent = '💾 Save Measurements';
+        if (step3SubBadge) step3SubBadge.textContent = 'Body Measurements';
+      } else {
+        if (wizardTopBar) wizardTopBar.classList.remove('hidden');
+        if (standaloneHeader) standaloneHeader.classList.add('hidden');
+        if (step3BackBtn) step3BackBtn.classList.remove('hidden');
+        if (next3Btn) next3Btn.textContent = 'Save Compulsory Profile →';
+        if (step3SubBadge) step3SubBadge.textContent = 'Step 3 of 5 • Compulsory Profile';
+
+        const dotsContainer = document.getElementById('onboardProgressDots');
+        if (dotsContainer) {
+          Array.from(dotsContainer.children).forEach((dot, idx) => {
+            if (idx + 1 === stepNum) dot.className = 'w-6 h-1.5 rounded-full bg-sky-500 transition-all';
+            else if (idx + 1 < stepNum) dot.className = 'w-2.5 h-1.5 rounded-full bg-sky-400/60 transition-all';
+            else dot.className = 'w-2 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 transition-all';
+          });
+        }
+
+        const topSkip = document.getElementById('onboardTopSkipBtn');
+        if (topSkip) {
+          if (stepNum === 3) {
+            topSkip.classList.add('hidden');
+          } else {
+            topSkip.classList.remove('hidden');
+            topSkip.textContent = stepNum < 5 ? 'Skip to Next →' : 'Skip to App →';
+          }
         }
       }
 
@@ -2542,6 +2641,7 @@
     }
 
     function finishOnboarding() {
+      isEditingProfileStandalone = false;
       state.onboardingCompleted = true;
       resetIntervalTimerToFull();
       saveState();
@@ -2549,15 +2649,21 @@
       renderUI();
       setTimeout(resizeCanvas, 60);
 
-      // Show Interactive Feature Tutorial upon opening the home screen!
       if (!state.tutorialSeen) {
-        openFeatureTutorial();
+        setTimeout(openFeatureTutorial, 250);
       }
     }
 
+    function clearTutorialSpotlights() {
+      document.querySelectorAll('.tutorial-spotlight-target').forEach((el) => {
+        el.classList.remove('tutorial-spotlight-target');
+      });
+    }
+
     function renderTutorialStep() {
+      clearTutorialSpotlights();
       const item = TUTORIAL_STEPS[currentTutorialStep];
-      document.getElementById('tutorialStepBadge').textContent = `Quick Tour • ${currentTutorialStep + 1} of ${TUTORIAL_STEPS.length}`;
+      document.getElementById('tutorialStepBadge').textContent = `Tour • ${currentTutorialStep + 1} of ${TUTORIAL_STEPS.length}`;
       document.getElementById('tutorialEmojiIcon').textContent = item.emoji;
       document.getElementById('tutorialTitleText').textContent = item.title;
       document.getElementById('tutorialBodyText').textContent = item.body;
@@ -2569,19 +2675,61 @@
       if (dots) {
         Array.from(dots.children).forEach((d, idx) => {
           d.className = idx === currentTutorialStep
-            ? 'w-4 h-1.5 rounded-full bg-sky-500 transition-all'
-            : 'w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 transition-all';
+            ? 'w-3.5 h-1.5 rounded-full bg-sky-500 transition-all'
+            : 'w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 transition-all';
         });
+      }
+
+      const targetEl = document.getElementById(item.targetId);
+      const card = document.getElementById('featureTutorialCard');
+      const arrowTop = document.getElementById('tutorialArrowTop');
+      const arrowBot = document.getElementById('tutorialArrowBottom');
+
+      if (targetEl && card) {
+        targetEl.classList.add('tutorial-spotlight-target');
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        setTimeout(() => {
+          const rect = targetEl.getBoundingClientRect();
+          const vw = window.innerWidth;
+          const vh = window.innerHeight;
+          const cardW = Math.min(330, vw * 0.88);
+
+          // Center horizontally relative to viewport, clamped safely
+          let leftPx = Math.max(12, Math.min(vw - cardW - 12, rect.left + rect.width / 2 - cardW / 2));
+          card.style.left = `${leftPx}px`;
+
+          // Arrow horizontal offset pointing directly at center of targetEl
+          const targetCenterX = rect.left + rect.width / 2;
+          const arrowOffsetPx = Math.max(24, Math.min(cardW - 24, targetCenterX - leftPx));
+
+          if (item.arrowDir === 'up') {
+            arrowTop.classList.remove('hidden');
+            arrowBot.classList.add('hidden');
+            arrowTop.style.left = `${arrowOffsetPx}px`;
+            const topPx = Math.min(vh - 210, rect.bottom + 22);
+            card.style.top = `${Math.max(16, topPx)}px`;
+            card.style.bottom = 'auto';
+          } else {
+            arrowTop.classList.add('hidden');
+            arrowBot.classList.remove('hidden');
+            arrowBot.style.left = `${arrowOffsetPx}px`;
+            const bottomPx = Math.max(16, vh - rect.top + 22);
+            card.style.bottom = `${bottomPx}px`;
+            card.style.top = 'auto';
+          }
+        }, 60);
       }
     }
 
     function openFeatureTutorial() {
       currentTutorialStep = 0;
+      document.getElementById('featureTutorialModal').classList.remove('hidden');
       renderTutorialStep();
-      openPopupWithBounce('featureTutorialModal', 'featureTutorialCard');
     }
 
     function closeFeatureTutorial() {
+      clearTutorialSpotlights();
       state.tutorialSeen = true;
       saveState();
       closePopupWithBounce('featureTutorialModal', 'featureTutorialCard');
@@ -2732,7 +2880,19 @@
       document.getElementById('onboardNext2Btn').addEventListener('click', () => showOnboardingStep(3));
       document.getElementById('onboardNext3Btn').addEventListener('click', () => {
         renderUI();
-        showOnboardingStep(4);
+        if (isEditingProfileStandalone) {
+          isEditingProfileStandalone = false;
+          document.getElementById('onboardingOverlay').classList.add('hidden');
+          showStatusToast('✅', 'Body measurements saved!');
+        } else {
+          showOnboardingStep(4, false);
+        }
+      });
+
+      document.getElementById('closeStandaloneProfileBtn').addEventListener('click', () => {
+        isEditingProfileStandalone = false;
+        document.getElementById('onboardingOverlay').classList.add('hidden');
+        renderUI();
       });
       document.getElementById('onboardNext4Btn').addEventListener('click', () => showOnboardingStep(5));
       document.getElementById('onboardFinishBtn').addEventListener('click', finishOnboarding);
@@ -2848,7 +3008,7 @@
       document.getElementById('openBodyProfileFromSettingsBtn').addEventListener('click', () => {
         closeSettingsDrawer();
         document.getElementById('onboardingOverlay').classList.remove('hidden');
-        showOnboardingStep(3);
+        showOnboardingStep(3, true);
       });
 
       document.getElementById('openTutorialFromSettingsBtn').addEventListener('click', () => {
