@@ -29,7 +29,7 @@ import java.net.URL;
 public class MainActivity extends Activity {
     private static final String LOCAL_ASSET_URL = "file:///android_asset/index.html";
     private static final String GITHUB_RAW_UPDATE_URL = "https://raw.githubusercontent.com/Amiya-cmd/hydroPulse/main/app/src/main/assets/index.html";
-    public static final String CHANNEL_ID = "hydropulse_reminders_v2";
+    public static final String CHANNEL_ID = "hydropulse_pop_alert_v4";
     public static final String PREFS_NOTIF_LOGS = "hydropulse_notif_logs";
     private static MainActivity activeInstance;
     private WebView webView;

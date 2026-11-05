@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/notif_root_card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/notif_card_bg"
+    android:padding="12dp">
+
+    <!-- Left Rounded Water Drop Box -->
+    <ImageView
+        android:id="@+id/notif_left_icon"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:src="@drawable/notif_drop_box"
+        android:scaleType="fitCenter"
+        android:layout_marginEnd="10dp" />
+
+    <!-- Middle 3-Line Text Column -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/notif_header_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="30-MIN HYDRATION ALERT  Now"
+            android:textColor="#38BDF8"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/notif_main_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Time to drink 110 ml of water!"
+            android:textColor="#FFFFFF"
+            android:textSize="13.5sp"
+            android:textStyle="bold"
+            android:layout_marginTop="1dp"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/notif_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tap +Drink to log your 30-min sip quota."
+            android:textColor="#CBD5E1"
+            android:textSize="11sp"
+            android:layout_marginTop="1dp"
+            android:singleLine="true" />
+    </LinearLayout>
+
+    <!-- Right "+Drink" Blue Pill Button -->
+    <TextView
+        android:id="@+id/notif_drink_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/notif_drink_btn_bg"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:layout_marginStart="8dp"
+        android:text="+Drink"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <!-- Far-Right "✕" Dismiss Button -->
+    <TextView
+        android:id="@+id/notif_close_btn"
+        android:layout_width="28dp"
+        android:layout_height="32dp"
+        android:gravity="center"
+        android:layout_marginStart="4dp"
+        android:text="✕"
+        android:textColor="#94A3B8"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+</LinearLayout>

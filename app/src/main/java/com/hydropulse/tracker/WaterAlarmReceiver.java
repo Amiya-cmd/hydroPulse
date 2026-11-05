@@ -15,44 +15,49 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
-import android.graphics.drawable.Icon;
+import android.media.AudioAttributes;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.provider.Settings;
+import android.widget.RemoteViews;
 import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Random;
 
 public class WaterAlarmReceiver extends BroadcastReceiver {
     public static final String ACTION_SHOW_REMINDER = "com.hydropulse.tracker.ACTION_SHOW_REMINDER";
     public static final String ACTION_ADD_WATER = "com.hydropulse.tracker.ACTION_ADD_WATER";
+    public static final String ACTION_DISMISS_NOTIF = "com.hydropulse.tracker.ACTION_DISMISS_NOTIF";
     public static final int NOTIF_ID = 3001;
-
-    private static final String[] ENGAGING_TITLES = new String[]{
-        "💧 Hydration Check-In! Ready for %d ml?",
-        "🌊 Keep Your Streak Flowing! Sip %d ml Now",
-        "⚡ Instant Energy Boost: Grab %d ml of Water!",
-        "✨ Refresh Your Body & Mind with %d ml!",
-        "🚰 Time for Your %d-Min Hydration Goal (%d ml)!"
-    };
-
-    private static final String[] ENGAGING_TIPS = new String[]{
-        "A quick %d ml sip right now keeps your energy high and your daily goal (%d ml) within easy reach. Tap below to log it instantly!",
-        "Staying hydrated improves focus and mood! Drink %d ml now and tap '+Add %d ml Now' right from this notification.",
-        "Don't let yesterday's morning penalty catch you! Finish your %d ml session sip now to stay on track for your %d ml target."
-    };
 
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         int intervalMins = intent.getIntExtra("intervalMins", 30);
-        int perIntervalMl = intent.getIntExtra("perIntervalMl", 100);
+        int perIntervalMl = intent.getIntExtra("perIntervalMl", 110);
         int currentIntakeMl = intent.getIntExtra("currentIntakeMl", 0);
-        int totalDailyMl = intent.getIntExtra("totalDailyMl", 3000);
+        int totalDailyMl = intent.getIntExtra("totalDailyMl", 3050);
 
-        // 1. Handle direct "+Add [X] ml Now" button click from the Notification!
+        // 1. Handle "✕" Dismiss Button on Custom Notification
+        if (ACTION_DISMISS_NOTIF.equals(action)) {
+            NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager != null) {
+                manager.cancel(NOTIF_ID);
+            }
+            return;
+        }
+
+        // 2. Handle "+Drink" Button on Custom Notification
         if (ACTION_ADD_WATER.equals(action)) {
             NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (manager != null) {
@@ -83,25 +88,31 @@ public class WaterAlarmReceiver extends BroadcastReceiver {
             return;
         }
 
-        // 2. Build Engaging Notification with Custom Water-Drop Icons & Direct Action Button
-        Random rng = new Random();
-        int titleIdx = rng.nextInt(ENGAGING_TITLES.length);
-        String title;
-        if (titleIdx == 4) {
-            title = String.format(Locale.US, ENGAGING_TITLES[titleIdx], intervalMins, perIntervalMl);
-        } else {
-            title = String.format(Locale.US, ENGAGING_TITLES[titleIdx], perIntervalMl);
+        // 3. Trigger Hardware Vibration & Audible Chime Immediately!
+        triggerDirectVibrationAndSound(context);
+
+        // 4. Ensure High-Priority Heads-Up NotificationChannel exists
+        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && nm != null) {
+            NotificationChannel channel = new NotificationChannel(
+                MainActivity.CHANNEL_ID,
+                "HydroPulse Pop-Up Alerts",
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            channel.setDescription("Floating heads-up water reminders with sound and vibration");
+            channel.enableVibration(true);
+            channel.setVibrationPattern(new long[]{0, 350, 150, 350});
+            channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            channel.setBypassDnd(true);
+            AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .build();
+            channel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes);
+            nm.createNotificationChannel(channel);
         }
 
-        int tipIdx = rng.nextInt(ENGAGING_TIPS.length);
-        String bigBody;
-        if (tipIdx == 1) {
-            bigBody = String.format(Locale.US, ENGAGING_TIPS[tipIdx], perIntervalMl, perIntervalMl);
-        } else {
-            bigBody = String.format(Locale.US, ENGAGING_TIPS[tipIdx], perIntervalMl, totalDailyMl);
-        }
-        String shortBody = "Tap '+Add " + perIntervalMl + " ml Now' below to log your drink directly!";
-
+        // 5. PendingIntents for Card Tap, "+Drink" Button, and "✕" Dismiss Button
         Intent openIntent = new Intent(context, MainActivity.class);
         openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent contentIntent = PendingIntent.getActivity(
@@ -117,7 +128,6 @@ public class WaterAlarmReceiver extends BroadcastReceiver {
         addDrinkIntent.putExtra("perIntervalMl", perIntervalMl);
         addDrinkIntent.putExtra("currentIntakeMl", currentIntakeMl);
         addDrinkIntent.putExtra("totalDailyMl", totalDailyMl);
-
         PendingIntent addDrinkPending = PendingIntent.getBroadcast(
             context,
             4001,
@@ -125,28 +135,28 @@ public class WaterAlarmReceiver extends BroadcastReceiver {
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        // Ensure NotificationChannel exists with IMPORTANCE_HIGH so Android pops up Heads-Up banner!
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-            if (nm != null) {
-                NotificationChannel channel = new NotificationChannel(
-                    MainActivity.CHANNEL_ID,
-                    "HydroPulse Hydration Reminders",
-                    NotificationManager.IMPORTANCE_HIGH
-                );
-                channel.setDescription("Heads-up pop-up reminders with 1-tap water logging");
-                channel.enableVibration(true);
-                channel.setVibrationPattern(new long[]{0, 300, 200, 300});
-                channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
-                channel.setBypassDnd(true);
-                android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
-                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_INSTANT)
-                    .build();
-                channel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes);
-                nm.createNotificationChannel(channel);
-            }
-        }
+        Intent dismissIntent = new Intent(context, WaterAlarmReceiver.class);
+        dismissIntent.setAction(ACTION_DISMISS_NOTIF);
+        PendingIntent dismissPending = PendingIntent.getBroadcast(
+            context,
+            4002,
+            dismissIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        // 6. Populate Custom Dark Pill Banner Layout (Matches In-App Banner 1000069144.jpg!)
+        String headerText = intervalMins + "-MIN HYDRATION ALERT  Now";
+        String titleText = "Time to drink " + perIntervalMl + " ml of water!";
+        String subText = "Tap +Drink to log your " + intervalMins + "-min sip quota.";
+
+        RemoteViews customBanner = new RemoteViews(context.getPackageName(), R.layout.custom_water_notification);
+        customBanner.setTextViewText(R.id.notif_header_badge, headerText);
+        customBanner.setTextViewText(R.id.notif_main_title, titleText);
+        customBanner.setTextViewText(R.id.notif_subtitle, subText);
+        customBanner.setTextViewText(R.id.notif_drink_btn, "+Drink");
+        customBanner.setOnClickPendingIntent(R.id.notif_drink_btn, addDrinkPending);
+        customBanner.setOnClickPendingIntent(R.id.notif_close_btn, dismissPending);
+        customBanner.setOnClickPendingIntent(R.id.notif_root_card, contentIntent);
 
         Notification.Builder builder;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -155,46 +165,92 @@ public class WaterAlarmReceiver extends BroadcastReceiver {
             builder = new Notification.Builder(context);
         }
 
-        // Exact match with in-app banner headline: "Time to drink [X] ml of water!"
-        String exactTitle = "Time to drink " + perIntervalMl + " ml of water!";
-        String exactSubtitle = "Tap +Drink to log your " + intervalMins + "-min sip quota (" + currentIntakeMl + " / " + totalDailyMl + " ml).";
-
-        Icon smallDropIcon = Icon.createWithBitmap(createSmallDropSilhouetteBitmap());
-        builder.setSmallIcon(smallDropIcon)
+        builder.setSmallIcon(R.drawable.ic_stat_water_drop)
                .setLargeIcon(createHydroPulseLogoBitmap())
-               .setContentTitle(exactTitle)
-               .setContentText(exactSubtitle)
-               .setStyle(new Notification.BigTextStyle()
-                   .bigText(exactSubtitle)
-                   .setSummaryText(intervalMins + "-MIN HYDRATION ALERT"))
+               .setContentTitle(titleText)
+               .setContentText(subText)
                .setColor(Color.parseColor("#0284C7"))
                .setAutoCancel(true)
                .setPriority(Notification.PRIORITY_MAX)
+               .setCategory(Notification.CATEGORY_ALARM)
+               .setVisibility(Notification.VISIBILITY_PUBLIC)
                .setDefaults(Notification.DEFAULT_ALL)
-               .setVibrate(new long[]{0, 300, 200, 300})
-               .setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI)
                .setContentIntent(contentIntent);
 
-        Notification.Action drinkAction = new Notification.Action.Builder(
-            smallDropIcon,
-            "💧 +Drink " + perIntervalMl + " ml",
-            addDrinkPending
-        ).build();
-        builder.addAction(drinkAction);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            builder.setCustomContentView(customBanner);
+            builder.setCustomBigContentView(customBanner);
+            builder.setCustomHeadsUpContentView(customBanner);
+        } else {
+            builder.setContent(customBanner);
+        }
 
-        Notification.Action openAction = new Notification.Action.Builder(
-            smallDropIcon,
-            "Open Tracker",
-            contentIntent
-        ).build();
-        builder.addAction(openAction);
-
-        NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (manager != null) {
-            manager.notify(NOTIF_ID, builder.build());
+        if (nm != null) {
+            nm.notify(NOTIF_ID, builder.build());
         }
 
         scheduleNextInterval(context, intervalMins, perIntervalMl, currentIntakeMl, totalDailyMl);
+    }
+
+    // Explicitly triggers phone vibration motor + audible chime so it works even on strict OEM skins
+    private void triggerDirectVibrationAndSound(Context context) {
+        try {
+            Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+            if (vibrator != null && vibrator.hasVibrator()) {
+                long[] pattern = new long[]{0, 350, 150, 350, 150, 450};
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1));
+                } else {
+                    vibrator.vibrate(pattern, -1);
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // Play default notification sound + synthesized hydration chime
+        new Thread(() -> {
+            try {
+                Uri notifUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                if (notifUri != null) {
+                    Ringtone r = RingtoneManager.getRingtone(context, notifUri);
+                    if (r != null) {
+                        r.play();
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            try {
+                int sampleRate = 16000;
+                int numSamples = sampleRate; // 1.0 sec two-tone chime
+                short[] pcm = new short[numSamples];
+                for (int i = 0; i < numSamples; i++) {
+                    double t = (double) i / sampleRate;
+                    double freq = (t < 0.45) ? 587.33 : 880.0;
+                    double localT = (t < 0.45) ? (t / 0.45) : ((t - 0.45) / 0.55);
+                    double env = Math.max(0.0, 1.0 - localT);
+                    pcm[i] = (short) (Math.sin(2.0 * Math.PI * freq * t) * 22000 * env);
+                }
+                AudioAttributes attrs = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+                AudioFormat format = new AudioFormat.Builder()
+                    .setSampleRate(sampleRate)
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                    .build();
+                AudioTrack track = new AudioTrack(
+                    attrs,
+                    format,
+                    pcm.length * 2,
+                    AudioTrack.MODE_STATIC,
+                    AudioManager.AUDIO_SESSION_ID_GENERATE
+                );
+                track.write(pcm, 0, pcm.length);
+                track.play();
+                Thread.sleep(1100);
+                track.release();
+            } catch (Exception ignored) {}
+        }).start();
     }
 
     private void scheduleNextInterval(Context context, int intervalMins, int perIntervalMl, int currentIntakeMl, int totalDailyMl) {
@@ -223,25 +279,6 @@ public class WaterAlarmReceiver extends BroadcastReceiver {
         }
     }
 
-    // Status-bar small white water-droplet silhouette icon
-    private static Bitmap createSmallDropSilhouetteBitmap() {
-        int size = 72;
-        Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bmp);
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setColor(Color.WHITE);
-
-        Path drop = new Path();
-        drop.moveTo(36f, 6f);
-        drop.cubicTo(36f, 6f, 12f, 34f, 12f, 48f);
-        drop.arcTo(new RectF(12f, 24f, 60f, 72f), 180f, -180f, false);
-        drop.cubicTo(60f, 34f, 36f, 6f, 36f, 6f);
-        drop.close();
-        canvas.drawPath(drop, paint);
-        return bmp;
-    }
-
-    // Full-color HydroPulse Logo Bitmap for the Notification Large Icon
     private static Bitmap createHydroPulseLogoBitmap() {
         int size = 192;
         Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
@@ -263,23 +300,6 @@ public class WaterAlarmReceiver extends BroadcastReceiver {
         drop.cubicTo(140f, 88f, 96f, 36f, 96f, 36f);
         drop.close();
         canvas.drawPath(drop, paint);
-
-        Paint pulsePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        pulsePaint.setColor(Color.parseColor("#0284C7"));
-        pulsePaint.setStyle(Paint.Style.STROKE);
-        pulsePaint.setStrokeWidth(7f);
-        pulsePaint.setStrokeCap(Paint.Cap.ROUND);
-        pulsePaint.setStrokeJoin(Paint.Join.ROUND);
-
-        Path pulse = new Path();
-        pulse.moveTo(64f, 120f);
-        pulse.lineTo(80f, 120f);
-        pulse.lineTo(88f, 100f);
-        pulse.lineTo(98f, 136f);
-        pulse.lineTo(108f, 112f);
-        pulse.lineTo(115f, 120f);
-        pulse.lineTo(128f, 120f);
-        canvas.drawPath(pulse, pulsePaint);
 
         return bmp;
     }
