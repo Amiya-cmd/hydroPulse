@@ -1,6 +1,7 @@
 package com.hydropulse.tracker;
 
 import android.Manifest;
+import android.accounts.AccountManager;
 import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.NotificationChannel;
@@ -21,6 +22,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import org.json.JSONArray;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -31,6 +33,7 @@ public class MainActivity extends Activity {
     private static final String GITHUB_RAW_UPDATE_URL = "https://raw.githubusercontent.com/Amiya-cmd/hydroPulse/main/app/src/main/assets/index.html";
     public static final String CHANNEL_ID = "hydropulse_pop_alert_v4";
     public static final String PREFS_NOTIF_LOGS = "hydropulse_notif_logs";
+    private static final int REQ_GOOGLE_ACCOUNT_PICKER = 9001;
     private static MainActivity activeInstance;
     private WebView webView;
 
@@ -92,6 +95,91 @@ public class MainActivity extends Activity {
             activeInstance = null;
         }
         super.onDestroy();
+    }
+
+    // Receive selected Google Account from Android's native system AccountPicker dialog
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_GOOGLE_ACCOUNT_PICKER) {
+            if (resultCode == RESULT_OK && data != null) {
+                String email = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
+                if (email != null && !email.isEmpty()) {
+                    saveRememberedGoogleEmail(email);
+                    final String safeEmail = email.replace("'", "").trim().toLowerCase();
+                    if (webView != null) {
+                        webView.evaluateJavascript(
+                            "if(window.onNativeGoogleAccountPicked) window.onNativeGoogleAccountPicked('" + safeEmail + "');",
+                            null
+                        );
+                    }
+                    return;
+                }
+            }
+            // If user canceled system picker or wants manual entry, open the fallback sheet in WebView
+            if (webView != null) {
+                webView.evaluateJavascript(
+                    "if(window.onNativeGooglePickerFallback) window.onNativeGooglePickerFallback();",
+                    null
+                );
+            }
+        }
+    }
+
+    private void saveRememberedGoogleEmail(String email) {
+        try {
+            SharedPreferences prefs = getSharedPreferences("hydropulse_google_accts", MODE_PRIVATE);
+            String raw = prefs.getString("emails_json", "[]");
+            JSONArray arr = new JSONArray(raw);
+            String clean = email.trim().toLowerCase();
+            boolean found = false;
+            for (int i = 0; i < arr.length(); i++) {
+                if (clean.equalsIgnoreCase(arr.getString(i))) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                arr.put(clean);
+                prefs.edit().putString("emails_json", arr.toString()).apply();
+            }
+        } catch (Exception ignored) {}
+    }
+
+    public void launchNativeGoogleAccountPicker() {
+        try {
+            Intent intent;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                intent = AccountManager.newChooseAccountIntent(
+                    null,
+                    null,
+                    new String[]{"com.google"},
+                    null,
+                    null,
+                    null,
+                    null
+                );
+            } else {
+                intent = AccountManager.newChooseAccountIntent(
+                    null,
+                    null,
+                    new String[]{"com.google"},
+                    false,
+                    null,
+                    null,
+                    null,
+                    null
+                );
+            }
+            startActivityForResult(intent, REQ_GOOGLE_ACCOUNT_PICKER);
+        } catch (Exception e) {
+            if (webView != null) {
+                webView.evaluateJavascript(
+                    "if(window.onNativeGooglePickerFallback) window.onNativeGooglePickerFallback();",
+                    null
+                );
+            }
+        }
     }
 
     public static void notifyDrinkLoggedFromNotification() {
@@ -207,6 +295,28 @@ public class MainActivity extends Activity {
 
         AndroidBridge(Context ctx) {
             this.context = ctx;
+        }
+
+        @JavascriptInterface
+        public void requestGoogleSignIn() {
+            runOnUiThread(() -> launchNativeGoogleAccountPicker());
+        }
+
+        @JavascriptInterface
+        public String getRememberedGoogleEmails() {
+            try {
+                SharedPreferences prefs = context.getSharedPreferences("hydropulse_google_accts", Context.MODE_PRIVATE);
+                return prefs.getString("emails_json", "[]");
+            } catch (Exception e) {
+                return "[]";
+            }
+        }
+
+        @JavascriptInterface
+        public void rememberGoogleEmail(String email) {
+            if (email != null && !email.isEmpty()) {
+                saveRememberedGoogleEmail(email);
+            }
         }
 
         @JavascriptInterface

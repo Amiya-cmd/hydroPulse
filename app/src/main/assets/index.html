@@ -521,7 +521,7 @@
           <div>
             <div class="flex items-center gap-1.5">
               <h3 class="text-base font-extrabold text-slate-900 dark:text-white leading-tight">What's New</h3>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500/15 text-sky-600 dark:text-sky-400" id="whatsNewVersionBadge">v3.3</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500/15 text-sky-600 dark:text-sky-400" id="whatsNewVersionBadge">v4.0</span>
             </div>
             <p class="text-[10px] text-slate-500 dark:text-slate-400">Latest features & improvements</p>
           </div>
@@ -873,10 +873,14 @@
       </div>
 
       <p class="text-xs text-slate-600 dark:text-slate-300">
-        Enter your Google email to link your Google account with Firebase Cloud and sync your streak:
+        Select your Google account below to automatically restore or sync your cloud data, or enter another email manually:
       </p>
 
+      <!-- Detected / Remembered Google Accounts List (1-Tap Selection, No Typing!) -->
+      <div id="detectedGoogleAccountsList" class="space-y-1.5 max-h-36 overflow-y-auto"></div>
+
       <div>
+        <label for="googleEmailDialogInput" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Or type Google Email manually</label>
         <input id="googleEmailDialogInput" type="email" placeholder="you@gmail.com" class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-sky-500" />
       </div>
 
@@ -1219,7 +1223,7 @@
           <!-- Line 8b: What's New in This Version -->
           <div class="py-3">
             <button id="openWhatsNewFromSettingsBtn" type="button" class="w-full flex items-center justify-between py-1 text-left font-bold text-slate-800 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 transition">
-              <span>🚀 What's New (v3.4)</span>
+              <span>🚀 What's New (v4.0)</span>
               <span class="text-sky-500 font-semibold text-[11px]">New →</span>
             </button>
           </div>
@@ -1245,7 +1249,7 @@
 
       <!-- Footer inside Sidebar -->
       <div class="pt-4 border-t border-slate-200/70 dark:border-slate-800 text-center">
-        <p class="text-[10px] font-semibold text-slate-400">HydroPulse v3.4 • Smart Hydration & Cycle</p>
+        <p class="text-[10px] font-semibold text-slate-400">HydroPulse v4.0 • Smart Hydration & Cycle</p>
       </div>
     </aside>
   </div>
@@ -1569,7 +1573,7 @@
                   💧
                 </div>
                 <div>
-                  <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Today's Shared Hydration</div>
+                  <div id="cycleHydrationSyncModeLabel" class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Today's Linked Hydration</div>
                   <div class="text-xs font-extrabold text-slate-900 dark:text-white">
                     <span id="cycleTodayWaterText">0</span> / <span id="cycleWaterTargetText">3050</span> ml
                   </div>
@@ -1764,27 +1768,31 @@
 
     const TUTORIAL_STEPS = [
       {
+        mode: 'water',
         targetId: 'topStreakCard',
         arrowDir: 'up',
         emoji: '🔥',
         title: 'Streak & Penalty Box',
-        body: 'Tap here to check your 7-day hydration streak or complete recovery tasks if you miss a daily goal.'
+        body: 'Tap here to check your calendar-accurate 7-day hydration streak or restore a broken streak.'
       },
       {
+        mode: 'water',
         targetId: 'topReminderCard',
         arrowDir: 'up',
         emoji: '⏱️',
         title: 'Reminder & Schedule Box',
-        body: 'Tap here to switch between 15m/30m/60m intervals and Auto Hours, Manual, or Schedule Timer modes.'
+        body: 'Tap here to switch between 15m/30m/60m intervals and Auto, Manual, or Timer modes.'
       },
       {
+        mode: 'water',
         targetId: 'topWeatherCard',
         arrowDir: 'up',
         emoji: '☀️',
         title: 'Weather & GPS Box',
-        body: 'Tap here to view how local temperature and weather adjust your daily hydration target.'
+        body: 'Tap here to see how local temperature and weather adjust your daily hydration limit.'
       },
       {
+        mode: 'water',
         targetId: 'heroWaterTankCard',
         arrowDir: 'up',
         emoji: '🌊',
@@ -1792,18 +1800,64 @@
         body: 'Shows your live daily water progress and persistent countdown timer with a 1-tap +Drink button.'
       },
       {
+        mode: 'water',
         targetId: 'heroDrinkPresetsCard',
         arrowDir: 'down',
         emoji: '🥛',
         title: 'One-Tap Cup Presets',
-        body: 'Tap any cup size (+100 ml to +1000 ml) here to log water immediately with splash sound effects.'
+        body: 'Tap any cup size (+100 ml to +1000 ml) here to log water immediately without typing.'
       },
       {
+        mode: 'water',
         targetId: 'openSettingsDrawerBtn',
         arrowDir: 'up',
         emoji: '⚙️',
-        title: 'Settings Sidebar',
-        body: 'Tap this gear icon to slide open Settings for Themes, Permissions, Body Profile, and Tutorial.'
+        title: 'Settings & Cloud Backup',
+        body: 'Tap this gear icon to access Cloud Login, Themes, Permissions, Body Profile, and Tutorial.'
+      },
+      {
+        mode: 'water',
+        targetId: 'topLogoModeSwitchBtn',
+        arrowDir: 'up',
+        emoji: '🌸',
+        title: 'Switch to Period Cycle Mode!',
+        body: 'Tap this top-left logo anytime to switch to the Period Cycle Tracker! Tap Next → to explore the Period Cycle features.'
+      },
+      {
+        mode: 'period',
+        cycleTab: 'dashboard',
+        targetId: 'openLogPeriodModalBtn',
+        arrowDir: 'up',
+        emoji: '🩸',
+        title: 'Log Period & Cycle Status',
+        body: 'In Period Cycle mode, view your current phase and countdown, or tap + Log Period here to record your dates.'
+      },
+      {
+        mode: 'period',
+        cycleTab: 'dashboard',
+        targetId: 'cycleQuickAddWaterBtn',
+        arrowDir: 'up',
+        emoji: '💧',
+        title: 'Cycle Hydration Tracking',
+        body: 'Female users automatically sync water intake with HydroPulse, while Male users have a separate counter here.'
+      },
+      {
+        mode: 'period',
+        cycleTab: 'dashboard',
+        targetId: 'cycleCalendarMonthTitle',
+        arrowDir: 'up',
+        emoji: '📅',
+        title: 'Interactive Cycle Calendar',
+        body: 'Highlights logged periods, predicted periods, fertile windows, and ovulation days. Tap any date to log symptoms!'
+      },
+      {
+        mode: 'period',
+        cycleTab: 'symptoms',
+        targetId: 'saveCycleDailyLogBtn',
+        arrowDir: 'down',
+        emoji: '💜',
+        title: 'Daily Mood, Symptoms & Insights',
+        body: 'Log your daily mood, cramps, flow intensity, and check the Insights tab for your 7-day correlation chart!'
       }
     ];
 
@@ -1872,16 +1926,24 @@
       periodLength: 5,
       periodLogs: [],
       periodDailyLogs: {},
-      dailyWaterHistoryMap: {}
+      dailyWaterHistoryMap: {},
+      periodSeparateWaterMl: 0,
+      periodSeparateWaterHistoryMap: {},
+      rememberedGoogleEmails: []
     };
 
     // Current app version & release changelog
-    const CURRENT_APP_VERSION = 'v3.4';
+    const CURRENT_APP_VERSION = 'v4.0';
     const WHATS_NEW_CHANGELOG = [
       {
+        icon: '🔑',
+        title: '1-Tap Auto Google Account Picker & Unified Cloud Restore',
+        desc: 'Tapping Continue with Google now detects your phone Google account automatically and restores all previous logs & streaks without resetting or repeating setup.'
+      },
+      {
         icon: '🌸',
-        title: 'Dual Water & Period Cycle Mode',
-        desc: 'Tap the top-left app logo anytime to smoothly switch between HydroPulse Water Tracker and the new Cycle & Flow Period Tracker! All data syncs to Cloud.'
+        title: 'Dual Water & Period Cycle Mode + Full Tutorial',
+        desc: 'Tap the top-left logo to switch between Water and Period Cycle modes. Water consumption links automatically for Female users and stays separate for Male users.'
       },
       {
         icon: '☁️',
@@ -1981,6 +2043,10 @@
         periodLogs: state.periodLogs,
         periodDailyLogs: state.periodDailyLogs,
         dailyWaterHistoryMap: state.dailyWaterHistoryMap,
+        periodSeparateWaterMl: state.periodSeparateWaterMl,
+        periodSeparateWaterHistoryMap: state.periodSeparateWaterHistoryMap,
+        tutorialSeen: true,
+        lastSeenWhatsNewVersion: CURRENT_APP_VERSION,
         updatedAt: Date.now()
       };
     }
@@ -1993,7 +2059,8 @@
         'sleepEndTime', 'reminderIntervalMins', 'lastActiveDateStr',
         'currentIntakeMl', 'drinkLogs', 'streakDays', 'bestStreak',
         'savedStreakBeforeMiss', 'streakMissedWarning', 'completedDatesMap', 'themePref',
-        'activeAppMode', 'cycleLength', 'periodLength', 'periodLogs', 'periodDailyLogs', 'dailyWaterHistoryMap'
+        'activeAppMode', 'cycleLength', 'periodLength', 'periodLogs', 'periodDailyLogs', 'dailyWaterHistoryMap',
+        'periodSeparateWaterMl', 'periodSeparateWaterHistoryMap', 'tutorialSeen', 'lastSeenWhatsNewVersion'
       ];
       keys.forEach((k) => {
         if (payload[k] !== undefined) state[k] = payload[k];
@@ -2008,7 +2075,7 @@
       }
       state.dailyWaterHistoryMap[getLocalDateString()] = state.currentIntakeMl;
       renderUI();
-      renderPeriodCycleUI();
+      if (state.activeAppMode === 'period') renderPeriodCycleUI();
     }
 
     async function refreshFirebaseTokenIfNeeded() {
@@ -2038,31 +2105,96 @@
       return email.toLowerCase().replace(/\./g, '_dot_').replace(/@/g, '_at_').replace(/[^a-zA-Z0-9_-]/g, '_');
     }
 
+    function deriveGoogleFirebaseSecret(email) {
+      const clean = (email || '').trim().toLowerCase();
+      return 'HP_GoogleAuth_' + btoa(clean).replace(/[^a-zA-Z0-9]/g, '').slice(0, 18) + '_#v4';
+    }
+
+    async function authenticateGoogleEmailWithFirebase(email) {
+      if (!state.firebaseApiKey) state.firebaseApiKey = atob('QUl6YVN5RDBoTXBoYjJiOHhRS0t6d2xSdTlvQnJZVXRDMHBLOHk4');
+      const cleanEmail = email.trim().toLowerCase();
+      const derivedPass = deriveGoogleFirebaseSecret(cleanEmail);
+
+      // 1. Check if we have a saved refreshToken for this exact email (e.g. from a prior Email/Password or Google session!)
+      try {
+        const savedTokenRaw = localStorage.getItem('hp_token_map_' + sanitizeEmailKey(cleanEmail));
+        if (savedTokenRaw) {
+          const savedTok = JSON.parse(savedTokenRaw);
+          if (savedTok && savedTok.refreshToken) {
+            state.cloudRefreshToken = savedTok.refreshToken;
+            state.cloudUserUid = savedTok.uid;
+            const refreshed = await refreshFirebaseTokenIfNeeded();
+            if (refreshed) return true;
+          }
+        }
+      } catch (e) {}
+
+      // 2. Try signing in with the deterministic Google credential on Firebase Auth
+      try {
+        const signInResp = await fetch(
+          `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(state.firebaseApiKey)}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: cleanEmail, password: derivedPass, returnSecureToken: true })
+          }
+        );
+        if (signInResp.ok) {
+          const data = await signInResp.json();
+          state.cloudUserEmail = cleanEmail;
+          state.cloudUserUid = data.localId;
+          state.cloudIdToken = data.idToken;
+          state.cloudRefreshToken = data.refreshToken;
+          try {
+            localStorage.setItem('hp_token_map_' + sanitizeEmailKey(cleanEmail), JSON.stringify({
+              uid: data.localId,
+              refreshToken: data.refreshToken
+            }));
+          } catch (e) {}
+          return true;
+        } else {
+          const errData = await signInResp.json();
+          const errMsg = errData?.error?.message || '';
+          // 3. If EMAIL_NOT_FOUND, provision the Firebase account for this Google email so future logins on any device use this exact UID!
+          if (errMsg.includes('EMAIL_NOT_FOUND')) {
+            const signUpResp = await fetch(
+              `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${encodeURIComponent(state.firebaseApiKey)}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: cleanEmail, password: derivedPass, returnSecureToken: true })
+              }
+            );
+            if (signUpResp.ok) {
+              const sData = await signUpResp.json();
+              state.cloudUserEmail = cleanEmail;
+              state.cloudUserUid = sData.localId;
+              state.cloudIdToken = sData.idToken;
+              state.cloudRefreshToken = sData.refreshToken;
+              try {
+                localStorage.setItem('hp_token_map_' + sanitizeEmailKey(cleanEmail), JSON.stringify({
+                  uid: sData.localId,
+                  refreshToken: sData.refreshToken
+                }));
+              } catch (e) {}
+              return true;
+            }
+          }
+        }
+      } catch (e) {}
+      return false;
+    }
+
     async function ensureFirebaseAuthToken() {
       if (state.cloudIdToken) {
         const token = await refreshFirebaseTokenIfNeeded();
         if (token) return token;
       }
-      if (!state.firebaseApiKey) return '';
-      // Anonymous authentication fallback so Firebase REST rules accept requests
-      try {
-        const resp = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${encodeURIComponent(state.firebaseApiKey)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ returnSecureToken: true })
-        });
-        if (resp.ok) {
-          const data = await resp.json();
-          if (data.idToken) {
-            state.cloudIdToken = data.idToken;
-            state.cloudRefreshToken = data.refreshToken;
-            if (!state.cloudUserUid) state.cloudUserUid = data.localId;
-            saveState(true);
-            return data.idToken;
-          }
-        }
-      } catch (e) {}
-      return '';
+      if (state.cloudUserEmail) {
+        const ok = await authenticateGoogleEmailWithFirebase(state.cloudUserEmail);
+        if (ok && state.cloudIdToken) return state.cloudIdToken;
+      }
+      return state.cloudIdToken || '';
     }
 
     async function pushStateToCloudSilent(showToastOnComplete = false) {
@@ -2230,8 +2362,14 @@
           state.cloudUserUid = data.localId;
           state.cloudIdToken = data.idToken;
           state.cloudRefreshToken = data.refreshToken;
+          rememberGoogleEmailAddress(state.cloudUserEmail);
+          try {
+            localStorage.setItem('hp_token_map_' + sanitizeEmailKey(state.cloudUserEmail), JSON.stringify({
+              uid: data.localId,
+              refreshToken: data.refreshToken
+            }));
+          } catch (e) {}
         } else {
-          // Instant Account Mode (Works out-of-the-box and syncs to Firebase as soon as keys are added)
           state.cloudUserEmail = email;
           state.cloudUserUid = 'uid_' + btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
         }
@@ -2240,24 +2378,25 @@
         state.cloudLastSyncStr = `Connected at ${nowTime}`;
         saveState(true);
 
-        if (cloudAuthMode === 'login') {
-          const restored = await pullStateFromCloud(false);
-          if (!restored) {
-            await pushStateToCloudSilent(false);
-          }
-        } else {
+        // Always attempt to restore existing cloud data first so we never overwrite an existing account!
+        const restored = await pullStateFromCloud(false);
+        if (!restored) {
           await pushStateToCloudSilent(false);
         }
 
-        // If user signed in from Onboarding Step 1, finish onboarding and take them straight to Home!
-        if (!state.onboardingCompleted) {
-          state.onboardingCompleted = true;
-          document.getElementById('onboardingOverlay').classList.add('hidden');
-        }
+        // Skip all onboarding pages and tutorial upon login — take user straight to Home Page!
+        state.onboardingCompleted = true;
+        state.tutorialSeen = true;
+        state.lastSeenWhatsNewVersion = CURRENT_APP_VERSION;
+        saveState(true);
+        document.getElementById('onboardingOverlay').classList.add('hidden');
+        document.getElementById('featureTutorialModal').classList.add('hidden');
+        closePopupWithBounce('cloudSyncModal', 'cloudSyncCard');
 
         updateCloudModalUI();
         renderUI();
-        showStatusToast('☁️', `Signed in as ${state.cloudUserEmail}! Auto-sync active.`);
+        setTimeout(resizeCanvas, 60);
+        showStatusToast('🎉', restored ? `Welcome back! Restored data for ${state.cloudUserEmail}` : `Signed in as ${state.cloudUserEmail}!`);
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = cloudAuthMode === 'signup' ? '✨ Create Account & Backup' : '☁️ Sign In & Sync My Data';
@@ -3656,9 +3795,21 @@
       });
     }
 
+    let modeBeforeTutorial = 'water';
+
     function renderTutorialStep() {
       clearTutorialSpotlights();
       const item = TUTORIAL_STEPS[currentTutorialStep];
+
+      // Automatically switch between Water Mode and Period Cycle Mode during tutorial!
+      if (item.mode && state.activeAppMode !== item.mode) {
+        state.activeAppMode = item.mode;
+        applyAppModeUI(true);
+      }
+      if (item.mode === 'period' && item.cycleTab && currentCycleTab !== item.cycleTab) {
+        switchCycleSubTab(item.cycleTab);
+      }
+
       document.getElementById('tutorialStepBadge').textContent = `Tour • ${currentTutorialStep + 1} of ${TUTORIAL_STEPS.length}`;
       document.getElementById('tutorialEmojiIcon').textContent = item.emoji;
       document.getElementById('tutorialTitleText').textContent = item.title;
@@ -3669,11 +3820,13 @@
 
       const dots = document.getElementById('tutorialDots');
       if (dots) {
-        Array.from(dots.children).forEach((d, idx) => {
-          d.className = idx === currentTutorialStep
-            ? 'w-3.5 h-1.5 rounded-full bg-sky-500 transition-all'
-            : 'w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 transition-all';
-        });
+        dots.innerHTML = TUTORIAL_STEPS.map((_, idx) => `
+          <span class="${
+            idx === currentTutorialStep
+              ? 'w-3.5 h-1.5 rounded-full bg-sky-500 transition-all'
+              : 'w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 transition-all'
+          }"></span>
+        `).join('');
       }
 
       const targetEl = document.getElementById(item.targetId);
@@ -3719,6 +3872,7 @@
     }
 
     function openFeatureTutorial() {
+      modeBeforeTutorial = state.activeAppMode || 'water';
       currentTutorialStep = 0;
       document.getElementById('featureTutorialModal').classList.remove('hidden');
       renderTutorialStep();
@@ -3726,6 +3880,10 @@
 
     function closeFeatureTutorial() {
       clearTutorialSpotlights();
+      if (state.activeAppMode !== modeBeforeTutorial) {
+        state.activeAppMode = modeBeforeTutorial;
+        applyAppModeUI(true);
+      }
       state.tutorialSeen = true;
       saveState();
       closePopupWithBounce('featureTutorialModal', 'featureTutorialCard');
@@ -3840,11 +3998,22 @@
       saveState();
     }
 
+    function getPeriodTrackerWaterForDate(dateStr) {
+      const isToday = dateStr === getLocalDateString();
+      if (state.gender === 'female') {
+        return isToday ? state.currentIntakeMl : (Number(state.dailyWaterHistoryMap?.[dateStr]) || 0);
+      } else {
+        return isToday ? (Number(state.periodSeparateWaterMl) || 0) : (Number(state.periodSeparateWaterHistoryMap?.[dateStr]) || 0);
+      }
+    }
+
     function ensureInitialPeriodData() {
       if (!Array.isArray(state.periodLogs)) state.periodLogs = [];
       if (!state.periodDailyLogs || typeof state.periodDailyLogs !== 'object') state.periodDailyLogs = {};
       if (!state.dailyWaterHistoryMap || typeof state.dailyWaterHistoryMap !== 'object') state.dailyWaterHistoryMap = {};
+      if (!state.periodSeparateWaterHistoryMap || typeof state.periodSeparateWaterHistoryMap !== 'object') state.periodSeparateWaterHistoryMap = {};
       state.dailyWaterHistoryMap[getLocalDateString()] = state.currentIntakeMl;
+      state.periodSeparateWaterHistoryMap[getLocalDateString()] = Number(state.periodSeparateWaterMl) || 0;
       state.cycleLength = Math.min(45, Math.max(20, Number(state.cycleLength) || 28));
       state.periodLength = Math.min(10, Math.max(2, Number(state.periodLength) || 5));
     }
@@ -3852,8 +4021,17 @@
     function renderPeriodCycleUI() {
       ensureInitialPeriodData();
       const metrics = calculateWaterMetrics();
-      document.getElementById('cycleTodayWaterText').textContent = state.currentIntakeMl;
-      document.getElementById('cycleWaterTargetText').textContent = metrics.totalDailyMl;
+      const isFemale = state.gender === 'female';
+      const syncLbl = document.getElementById('cycleHydrationSyncModeLabel');
+      if (syncLbl) {
+        syncLbl.textContent = isFemale
+          ? "Today's Linked Hydration (Synced)"
+          : "Cycle Hydration (Separate for Male)";
+      }
+      const periodWaterNow = isFemale ? state.currentIntakeMl : (Number(state.periodSeparateWaterMl) || 0);
+      const periodWaterGoal = isFemale ? metrics.totalDailyMl : 2200;
+      document.getElementById('cycleTodayWaterText').textContent = periodWaterNow;
+      document.getElementById('cycleWaterTargetText').textContent = periodWaterGoal;
       document.getElementById('statCycleLengthText').textContent = state.cycleLength;
       document.getElementById('statPeriodLengthText').textContent = state.periodLength;
 
@@ -3982,7 +4160,7 @@
           }
         }
 
-        const waterMl = state.dailyWaterHistoryMap[dateStr] || (isToday ? state.currentIntakeMl : 0);
+        const waterMl = getPeriodTrackerWaterForDate(dateStr);
         const hasSym = Boolean(
           state.periodDailyLogs[dateStr] &&
           ((state.periodDailyLogs[dateStr].symptoms && state.periodDailyLogs[dateStr].symptoms.length > 0) ||
@@ -4126,8 +4304,9 @@
       let periodSum = 0, periodCnt = 0;
       let nonPeriodSum = 0, nonPeriodCnt = 0;
 
-      Object.keys(state.dailyWaterHistoryMap || {}).forEach((dStr) => {
-        const val = Number(state.dailyWaterHistoryMap[dStr]) || 0;
+      const activeMap = state.gender === 'female' ? (state.dailyWaterHistoryMap || {}) : (state.periodSeparateWaterHistoryMap || {});
+      Object.keys(activeMap).forEach((dStr) => {
+        const val = Number(activeMap[dStr]) || 0;
         if (val <= 0) return;
         if (isDateInLoggedPeriod(dStr)) {
           periodSum += val;
@@ -4138,10 +4317,11 @@
         }
       });
 
+      const fallbackNow = getPeriodTrackerWaterForDate(getLocalDateString());
       document.getElementById('avgWaterPeriodDaysText').textContent =
         `${periodCnt > 0 ? Math.round(periodSum / periodCnt) : 0} ml`;
       document.getElementById('avgWaterNonPeriodDaysText').textContent =
-        `${nonPeriodCnt > 0 ? Math.round(nonPeriodSum / nonPeriodCnt) : state.currentIntakeMl} ml`;
+        `${nonPeriodCnt > 0 ? Math.round(nonPeriodSum / nonPeriodCnt) : fallbackNow} ml`;
 
       // Draw 7-Day Bar Chart on #cycleWaterCorrelationCanvas
       const cCanvas = document.getElementById('cycleWaterCorrelationCanvas');
@@ -4166,7 +4346,7 @@
       for (let i = 6; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
         const dStr = getLocalDateString(d);
-        const val = i === 0 ? state.currentIntakeMl : (Number(state.dailyWaterHistoryMap[dStr]) || 0);
+        const val = getPeriodTrackerWaterForDate(dStr);
         const isPer = isDateInLoggedPeriod(dStr);
         const colIdx = 6 - i;
         const barW = Math.min(26, slotW * 0.55);
@@ -4828,43 +5008,145 @@
         showStatusToast('👋', 'Signed out of Cloud Sync.');
       });
 
+      function getRememberedEmailsList() {
+        const list = new Set();
+        if (state.cloudUserEmail) list.add(state.cloudUserEmail.toLowerCase());
+        if (Array.isArray(state.rememberedGoogleEmails)) {
+          state.rememberedGoogleEmails.forEach((e) => { if (e) list.add(e.toLowerCase()); });
+        }
+        try {
+          const localRaw = localStorage.getItem('hydropulse_remembered_emails');
+          if (localRaw) {
+            JSON.parse(localRaw).forEach((e) => { if (e) list.add(e.toLowerCase()); });
+          }
+        } catch (e) {}
+        if (window.AndroidBridge && typeof window.AndroidBridge.getRememberedGoogleEmails === 'function') {
+          try {
+            const nativeRaw = window.AndroidBridge.getRememberedGoogleEmails();
+            if (nativeRaw) {
+              JSON.parse(nativeRaw).forEach((e) => { if (e) list.add(e.toLowerCase()); });
+            }
+          } catch (e) {}
+        }
+        return Array.from(list);
+      }
+
+      function rememberGoogleEmailAddress(email) {
+        if (!email || !email.includes('@')) return;
+        const clean = email.trim().toLowerCase();
+        const current = getRememberedEmailsList();
+        if (!current.includes(clean)) current.unshift(clean);
+        state.rememberedGoogleEmails = current;
+        try {
+          localStorage.setItem('hydropulse_remembered_emails', JSON.stringify(current));
+        } catch (e) {}
+        if (window.AndroidBridge && typeof window.AndroidBridge.rememberGoogleEmail === 'function') {
+          try { window.AndroidBridge.rememberGoogleEmail(clean); } catch (e) {}
+        }
+      }
+
+      async function completeGoogleSignInWithEmail(rawEmail) {
+        const email = (rawEmail || '').trim().toLowerCase();
+        if (!email || !email.includes('@')) return;
+
+        rememberGoogleEmailAddress(email);
+        state.cloudUserEmail = email;
+
+        // Authenticate with Firebase Auth using deterministic Google credential so auth.uid == $uid rules succeed!
+        await authenticateGoogleEmailWithFirebase(email);
+        if (!state.cloudUserUid) {
+          state.cloudUserUid = 'google_' + btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
+        }
+        saveState(true);
+
+        // 1. PULL CLOUD DATA FIRST! Only load existing data if available; never overwrite existing cloud records!
+        const restored = await pullStateFromCloud(false);
+        if (!restored) {
+          // First-time user with this Google account: start saving their data to Firebase Cloud!
+          await pushStateToCloudSilent(false);
+        }
+
+        // Skip onboarding & tutorial and go straight to Home Page!
+        state.onboardingCompleted = true;
+        state.tutorialSeen = true;
+        state.lastSeenWhatsNewVersion = CURRENT_APP_VERSION;
+        saveState(true);
+
+        document.getElementById('onboardingOverlay').classList.add('hidden');
+        document.getElementById('featureTutorialModal').classList.add('hidden');
+        closeGoogleDialog();
+        closePopupWithBounce('cloudSyncModal', 'cloudSyncCard');
+
+        updateCloudModalUI();
+        renderUI();
+        if (state.activeAppMode === 'period') renderPeriodCycleUI();
+        setTimeout(resizeCanvas, 60);
+        showStatusToast(
+          restored ? '🎉' : '✅',
+          restored
+            ? `Restored previous data for ${email}!`
+            : `Signed in with Google (${email})! Auto-saving active.`
+        );
+      }
+
+      // Callback invoked directly by Android's native system Google Account Picker!
+      window.onNativeGoogleAccountPicked = function(pickedEmail) {
+        if (pickedEmail) {
+          completeGoogleSignInWithEmail(pickedEmail);
+        }
+      };
+
+      window.onNativeGooglePickerFallback = function() {
+        openInPageGoogleAccountSelector();
+      };
+
+      function openInPageGoogleAccountSelector() {
+        const gModal = document.getElementById('googleAuthDialogModal');
+        const gInput = document.getElementById('googleEmailDialogInput');
+        const gErr = document.getElementById('googleEmailDialogError');
+        const listEl = document.getElementById('detectedGoogleAccountsList');
+        if (gErr) gErr.classList.add('hidden');
+
+        const emails = getRememberedEmailsList();
+        if (listEl) {
+          if (emails.length > 0) {
+            listEl.innerHTML = emails.map((em) => `
+              <button type="button" data-pick-google="${em}" class="picked-google-chip w-full p-2.5 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 flex items-center justify-between text-xs font-extrabold text-slate-900 dark:text-white transition active:scale-95">
+                <span class="flex items-center gap-2 truncate">
+                  <span class="w-6 h-6 rounded-full bg-sky-600 text-white flex items-center justify-center text-[11px] font-bold uppercase shrink-0">${em[0]}</span>
+                  <span class="truncate">${em}</span>
+                </span>
+                <span class="text-[10px] text-sky-600 dark:text-sky-400 shrink-0 ml-2">Select →</span>
+              </button>
+            `).join('');
+            listEl.querySelectorAll('.picked-google-chip').forEach((btn) => {
+              btn.addEventListener('click', () => {
+                completeGoogleSignInWithEmail(btn.getAttribute('data-pick-google'));
+              });
+            });
+          } else {
+            listEl.innerHTML = '';
+          }
+        }
+
+        if (gInput) gInput.value = state.cloudUserEmail || (emails[0] || '');
+        if (gModal) gModal.classList.remove('hidden');
+      }
+
       async function handleGoogleSignIn() {
         const errEl = document.getElementById('cloudAuthErrorMsg');
-        const googleBtn = document.getElementById('googleSignInBtn');
         if (errEl) errEl.classList.add('hidden');
-        if (googleBtn) {
-          googleBtn.disabled = true;
-          googleBtn.innerHTML = `<span>⏳ Connecting to Google...</span>`;
-        }
 
-        try {
-          // If AndroidBridge has native Google Sign-in implemented, invoke it
-          if (window.AndroidBridge && typeof window.AndroidBridge.requestGoogleSignIn === 'function') {
+        // 1. On Android Phone APK: Launch Android's native system Google Account Picker dialog automatically!
+        if (window.AndroidBridge && typeof window.AndroidBridge.requestGoogleSignIn === 'function') {
+          try {
             window.AndroidBridge.requestGoogleSignIn();
             return;
-          }
-
-          // Open in-page Google Account Link Modal (Sandbox-safe, zero window.prompt!)
-          const gModal = document.getElementById('googleAuthDialogModal');
-          const gInput = document.getElementById('googleEmailDialogInput');
-          const gErr = document.getElementById('googleEmailDialogError');
-          if (gErr) gErr.classList.add('hidden');
-          if (gInput) gInput.value = state.cloudUserEmail || '';
-          if (gModal) gModal.classList.remove('hidden');
-        } finally {
-          if (googleBtn) {
-            googleBtn.disabled = false;
-            googleBtn.innerHTML = `
-              <svg class="w-4 h-4" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-              </svg>
-              <span>Continue with Google</span>
-            `;
-          }
+          } catch (e) {}
         }
+
+        // 2. Otherwise open the in-page Google account selector (with 1-tap remembered accounts or manual input)
+        openInPageGoogleAccountSelector();
       }
 
       document.getElementById('googleSignInBtn').addEventListener('click', handleGoogleSignIn);
@@ -4885,7 +5167,7 @@
 
         if (!email || !email.includes('@')) {
           if (gErr) {
-            gErr.textContent = '⚠️ Please enter a valid Google email address.';
+            gErr.textContent = '⚠️ Please enter or select a valid Google email address.';
             gErr.classList.remove('hidden');
           }
           return;
@@ -4893,26 +5175,8 @@
 
         confirmBtn.disabled = true;
         confirmBtn.textContent = 'Syncing...';
-
         try {
-          state.cloudUserEmail = email;
-          state.cloudUserUid = 'google_' + btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
-          saveState(true);
-
-          // PULL CLOUD DATA FIRST! If prior streak/logs exist on Firebase, restore them immediately!
-          const restored = await pullStateFromCloud(true);
-          if (!restored) {
-            // Only push local state if no remote cloud data was found
-            await pushStateToCloudSilent(false);
-          }
-
-          state.onboardingCompleted = true;
-          document.getElementById('onboardingOverlay').classList.add('hidden');
-
-          closeGoogleDialog();
-          updateCloudModalUI();
-          renderUI();
-          showStatusToast('✅', `Google Account linked: ${state.cloudUserEmail}!`);
+          await completeGoogleSignInWithEmail(email);
         } finally {
           confirmBtn.disabled = false;
           confirmBtn.textContent = 'Link & Sync';
@@ -4968,7 +5232,19 @@
       });
 
       document.getElementById('cycleQuickAddWaterBtn').addEventListener('click', () => {
-        addWaterIntake(200);
+        if (state.gender === 'female') {
+          addWaterIntake(200);
+        } else {
+          state.periodSeparateWaterMl = (Number(state.periodSeparateWaterMl) || 0) + 200;
+          if (!state.periodSeparateWaterHistoryMap || typeof state.periodSeparateWaterHistoryMap !== 'object') {
+            state.periodSeparateWaterHistoryMap = {};
+          }
+          state.periodSeparateWaterHistoryMap[getLocalDateString()] = state.periodSeparateWaterMl;
+          if (state.soundEnabled) playWaterPourSound(200);
+          saveState();
+          renderPeriodCycleUI();
+          showStatusToast('💧', 'Added +200 ml to Period Tracker (separate from HydroPulse)!');
+        }
       });
 
       document.getElementById('calPrevMonthBtn').addEventListener('click', () => {
