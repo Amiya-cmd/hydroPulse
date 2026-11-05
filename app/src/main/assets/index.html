@@ -97,6 +97,21 @@
     .animate-arrow-down {
       animation: arrowBobDown 1s ease-in-out infinite;
     }
+    @keyframes modeSwitchFlip {
+      0% { transform: scale(1) rotateY(0deg); }
+      50% { transform: scale(1.18) rotateY(90deg); }
+      100% { transform: scale(1) rotateY(180deg); }
+    }
+    @keyframes modePageTransition {
+      0% { opacity: 0; transform: translateY(14px) scale(0.97); filter: blur(4px); }
+      100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
+    }
+    .animate-logo-flip {
+      animation: modeSwitchFlip 0.48s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .animate-mode-page {
+      animation: modePageTransition 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
     /* Scrollable drum wheel styling */
     .wheel-scroll {
       scroll-snap-type: y mandatory;
@@ -153,9 +168,19 @@
   <div id="appSplashScreen" class="fixed inset-0 z-[80] bg-gradient-to-br from-sky-600 via-blue-700 to-slate-950 flex flex-col items-center justify-center p-6 text-white transition-all duration-500 gpu-smooth">
     <div class="relative flex items-center justify-center mb-6">
       <div class="absolute w-28 h-28 rounded-full bg-sky-400/25 animate-ping"></div>
-      <div class="w-24 h-24 rounded-3xl bg-white/15 backdrop-blur-md border border-white/30 shadow-2xl flex items-center justify-center animate-float">
-        <svg class="w-14 h-14 text-sky-200 drop-shadow" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+      <!-- Split-Half App Logo: Left Half = Water (Blue), Right Half = Period Cycle (Rose) -->
+      <div class="w-24 h-24 rounded-3xl overflow-hidden border-2 border-white/40 shadow-2xl relative flex items-center justify-center animate-float">
+        <div class="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-b from-sky-400 to-blue-600"></div>
+        <div class="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-b from-rose-400 to-rose-600"></div>
+        <div class="absolute inset-y-0 left-1/2 w-[1.5px] bg-white/50 -translate-x-1/2"></div>
+        <svg class="w-14 h-14 relative z-10 drop-shadow-md" viewBox="0 0 24 24" fill="none">
+          <!-- Left Half Water Drop -->
+          <path d="M12 2.69 L6.34 8.35 A8 8 0 0 0 12 22 Z" fill="#FFFFFF"/>
+          <!-- Right Half Period Cycle Drop & Cycle Ring -->
+          <path d="M12 2.69 L17.66 8.35 A8 8 0 0 1 12 22 Z" fill="#FFE4E6"/>
+          <path d="M12 10 A4.5 4.5 0 0 1 16.5 14.5 A4.5 4.5 0 0 1 12 19" stroke="#E11D48" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="15.2" cy="11.2" r="1.2" fill="#E11D48"/>
+          <path d="M8 14.5 Q10 13 12 14.5" stroke="#0284C7" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
       </div>
     </div>
@@ -989,6 +1014,60 @@
     </div>
   </div>
 
+  <!-- POP-UP 6: LOG PERIOD DATES & CYCLE LENGTH MODAL -->
+  <div id="logPeriodPopupModal" class="fixed inset-0 z-[65] bg-slate-950/45 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="logPeriodPopupCard" class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-rose-500/40 rounded-3xl max-w-sm w-[92%] p-5 shadow-2xl bounce-in space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🩸</span>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900 dark:text-white leading-tight">Log Period & Cycle</h3>
+            <p class="text-[11px] text-rose-500 font-semibold">Saved to device & Firebase Cloud</p>
+          </div>
+        </div>
+        <button id="closeLogPeriodModalBtn" type="button" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center font-bold text-sm">
+          ✕
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-slate-50 dark:bg-slate-800 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <label for="periodStartInput" class="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Start Date</label>
+            <input id="periodStartInput" type="date" class="w-full text-xs font-extrabold bg-transparent text-slate-900 dark:text-white focus:outline-none" />
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-800 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <label for="periodEndInput" class="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">End Date</label>
+            <input id="periodEndInput" type="date" class="w-full text-xs font-extrabold bg-transparent text-slate-900 dark:text-white focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-slate-50 dark:bg-slate-800 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <label for="cycleLengthInput" class="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Cycle Length (Days)</label>
+            <input id="cycleLengthInput" type="number" min="20" max="45" value="28" class="w-full text-sm font-extrabold bg-transparent text-slate-900 dark:text-white focus:outline-none" />
+          </div>
+          <div class="bg-slate-50 dark:bg-slate-800 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <label for="periodLengthInput" class="block text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Period Duration (Days)</label>
+            <input id="periodLengthInput" type="number" min="2" max="10" value="5" class="w-full text-sm font-extrabold bg-transparent text-slate-900 dark:text-white focus:outline-none" />
+          </div>
+        </div>
+
+        <!-- Logged Periods History List -->
+        <div class="pt-2 border-t border-slate-200/70 dark:border-slate-700/60">
+          <div class="text-[10px] font-extrabold uppercase text-slate-400 mb-1.5">Logged Period History</div>
+          <div id="loggedPeriodsHistoryList" class="max-h-24 overflow-y-auto space-y-1"></div>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button id="savePeriodAndSettingsBtn" type="button" class="flex-1 py-2.5 rounded-2xl bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-extrabold text-xs shadow-md shadow-rose-500/25 transition">
+          💾 Save Period & Cycle
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- POP-UP 4: ABOUT THE APP & FORMULA POP-UP WINDOW -->
   <div id="formulaModal" class="fixed inset-0 z-[60] bg-slate-950/45 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div id="formulaPopupCard" class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl max-w-sm w-[92%] p-5 shadow-2xl bounce-in">
@@ -1140,7 +1219,7 @@
           <!-- Line 8b: What's New in This Version -->
           <div class="py-3">
             <button id="openWhatsNewFromSettingsBtn" type="button" class="w-full flex items-center justify-between py-1 text-left font-bold text-slate-800 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 transition">
-              <span>🚀 What's New (v3.3)</span>
+              <span>🚀 What's New (v3.4)</span>
               <span class="text-sky-500 font-semibold text-[11px]">New →</span>
             </button>
           </div>
@@ -1166,7 +1245,7 @@
 
       <!-- Footer inside Sidebar -->
       <div class="pt-4 border-t border-slate-200/70 dark:border-slate-800 text-center">
-        <p class="text-[10px] font-semibold text-slate-400">HydroPulse v3.3 • Smart Hydration</p>
+        <p class="text-[10px] font-semibold text-slate-400">HydroPulse v3.4 • Smart Hydration & Cycle</p>
       </div>
     </aside>
   </div>
@@ -1217,20 +1296,33 @@
     <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/70 dark:border-slate-800 px-4 py-3">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center text-white shadow-md shadow-sky-500/25">
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <!-- Interactive Top-Left Logo Button: Switches between Water Mode & Period Cycle Mode! -->
+          <button id="topLogoModeSwitchBtn" type="button" class="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center text-white shadow-md shadow-sky-500/30 active:scale-90 transition-all duration-300 group" title="Tap logo to switch between Water Tracker & Period Cycle Tracker">
+            <!-- Water Mode Full Logo SVG -->
+            <svg id="logoWaterModeSvg" class="w-5 h-5 transition-transform duration-300" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
             </svg>
-          </div>
+            <!-- Period Cycle Mode Full Logo SVG (Hidden in Water Mode) -->
+            <svg id="logoPeriodModeSvg" class="w-5 h-5 hidden transition-transform duration-300" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" fill="currentColor" fill-opacity="0.25"/>
+              <circle cx="12" cy="14" r="5.5" stroke="currentColor" stroke-width="2.2" stroke-dasharray="22 6" stroke-linecap="round"/>
+              <circle cx="16" cy="10" r="1.8" fill="#FFF1F2"/>
+              <circle cx="12" cy="14" r="2" fill="currentColor"/>
+            </svg>
+            <!-- Mini switch indicator dot on corner of logo -->
+            <span id="logoModeCornerDot" class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-rose-500 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[7px] text-white font-bold shadow">
+              🌸
+            </span>
+          </button>
           <div>
             <div class="flex items-center gap-1.5">
-              <h1 class="text-base font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">HydroPulse</h1>
+              <h1 id="headerBrandTitle" class="text-base font-extrabold tracking-tight text-slate-900 dark:text-white leading-none transition-colors">HydroPulse</h1>
               <span id="trackerActiveBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 Active
               </span>
             </div>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5" id="headerSubStatus">Tap top boxes for details</p>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5" id="headerSubStatus">Tap logo to switch to Period Cycle 🌸</p>
           </div>
         </div>
 
@@ -1245,7 +1337,11 @@
     </header>
 
     <!-- Main Clean Home Content -->
-    <main class="flex-1 px-4 pt-4 space-y-4">
+    <main class="flex-1 px-4 pt-4">
+      <!-- ================================================================= -->
+      <!-- VIEW 1: HYDROPULSE WATER TRACKER MODE                             -->
+      <!-- ================================================================= -->
+      <div id="waterModeViewWrapper" class="space-y-4 animate-mode-page">
 
       <!-- TOP 3 CLICKABLE SUMMARY BOXES (Open Bouncy Pop-up Windows) -->
       <div class="grid grid-cols-3 gap-2.5">
@@ -1399,7 +1495,252 @@
           <div id="drinkHistoryList" class="flex gap-2 overflow-x-auto pb-1"></div>
         </div>
       </div>
+      </div><!-- End #waterModeViewWrapper -->
 
+      <!-- ================================================================= -->
+      <!-- VIEW 2: PERIOD CYCLE & FLOW TRACKER MODE (Switched via Top Logo)  -->
+      <!-- ================================================================= -->
+      <div id="periodCycleModeWrapper" class="hidden space-y-4 animate-mode-page">
+
+        <!-- Sub-Navigation Tabs inside Period Cycle Mode -->
+        <div class="grid grid-cols-3 gap-1.5 bg-rose-50/90 dark:bg-slate-800/90 p-1.5 rounded-2xl border border-rose-200/70 dark:border-rose-900/40 shadow-sm">
+          <button type="button" data-cycle-tab="dashboard" class="cycle-tab-btn py-2 px-2 rounded-xl text-xs font-extrabold bg-rose-500 text-white shadow-sm transition flex items-center justify-center gap-1.5">
+            <span>📅</span>
+            <span>Cycle</span>
+          </button>
+          <button type="button" data-cycle-tab="symptoms" class="cycle-tab-btn py-2 px-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-rose-500 transition flex items-center justify-center gap-1.5">
+            <span>💜</span>
+            <span>Log Today</span>
+          </button>
+          <button type="button" data-cycle-tab="analytics" class="cycle-tab-btn py-2 px-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-rose-500 transition flex items-center justify-center gap-1.5">
+            <span>📊</span>
+            <span>Insights</span>
+          </button>
+        </div>
+
+        <!-- TAB A: CYCLE DASHBOARD & INTERACTIVE CALENDAR -->
+        <div id="cycleTabDashboard" class="space-y-4">
+
+          <!-- Hero Cycle Status & Phase Card -->
+          <div class="rounded-3xl p-5 bg-gradient-to-br from-rose-50 via-white to-pink-50 dark:from-slate-800 dark:via-slate-900 dark:to-rose-950/30 border border-rose-200/80 dark:border-rose-900/50 shadow-md space-y-4">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <span id="cyclePhasePill" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-rose-500/15 text-rose-600 dark:text-rose-300 border border-rose-500/30">
+                  <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                  <span id="cyclePhaseNameText">Menstrual Phase</span>
+                </span>
+                <h2 id="cycleDayHeadlineText" class="text-2xl font-extrabold text-slate-900 dark:text-white mt-2.5">Day 1 of Cycle</h2>
+                <p id="nextPeriodCountdownText" class="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">Next period predicted in 27 days</p>
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <button id="openLogPeriodModalBtn" type="button" class="px-3.5 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-xs font-extrabold shadow-md shadow-rose-500/25 transition flex items-center gap-1">
+                  <span>+ Log Period</span>
+                </button>
+                <button id="openCycleSettingsModalBtn" type="button" class="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-rose-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-bold hover:border-rose-400 transition text-center">
+                  ⚙️ Cycle Length
+                </button>
+              </div>
+            </div>
+
+            <!-- 4-Phase Cycle Progress Bar -->
+            <div class="space-y-1.5 pt-1">
+              <div class="flex justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                <span>Cycle Progress</span>
+                <span>Day <span id="cycleCurDayNum">1</span> of <span id="cycleTotalLenNum">28</span></span>
+              </div>
+              <div class="w-full h-3 bg-slate-200/80 dark:bg-slate-800 rounded-full overflow-hidden flex p-0.5 gap-0.5">
+                <div id="barMenstrual" class="h-full bg-rose-500 rounded-l-full transition-all" style="width: 18%"></div>
+                <div id="barFollicular" class="h-full bg-emerald-400 transition-all" style="width: 28%"></div>
+                <div id="barOvulation" class="h-full bg-purple-500 transition-all" style="width: 22%"></div>
+                <div id="barLuteal" class="h-full bg-amber-400 rounded-r-full transition-all" style="width: 32%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] font-bold pt-0.5">
+                <span class="text-rose-500">🩸 Period</span>
+                <span class="text-emerald-600 dark:text-emerald-400">🌱 Follicular</span>
+                <span class="text-purple-600 dark:text-purple-400">✨ Ovulation (~Day <span id="cycleOvulationDayNum">14</span>)</span>
+                <span class="text-amber-600 dark:text-amber-400">🌙 Luteal</span>
+              </div>
+            </div>
+
+            <!-- Integrated Hydration Sync Strip inside Cycle Card -->
+            <div class="pt-3 border-t border-rose-200/60 dark:border-slate-800 flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center text-base">
+                  💧
+                </div>
+                <div>
+                  <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Today's Shared Hydration</div>
+                  <div class="text-xs font-extrabold text-slate-900 dark:text-white">
+                    <span id="cycleTodayWaterText">0</span> / <span id="cycleWaterTargetText">3050</span> ml
+                  </div>
+                </div>
+              </div>
+              <button id="cycleQuickAddWaterBtn" type="button" class="px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-extrabold active:scale-95 transition">
+                +200 ml 💧
+              </button>
+            </div>
+          </div>
+
+          <!-- Phase Insights, Nutrition & Cycle Hydration Relief Card -->
+          <div class="rounded-3xl p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>✨ Phase Insights & Relief</span>
+              </h3>
+              <span id="insightPhaseTag" class="text-[10px] font-extrabold uppercase tracking-wider text-rose-500">Menstrual</span>
+            </div>
+            <p id="cyclePhaseDescText" class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Estrogen and progesterone levels drop. Staying hydrated helps ease cramps and fatigue.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div class="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-2">
+                <span class="text-base">🍲</span>
+                <div>
+                  <div class="text-[11px] font-extrabold text-rose-700 dark:text-rose-300">Nutrition Tip</div>
+                  <p id="cycleNutritionTipText" class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">Iron-rich foods (spinach, lentils), dark chocolate, and warm teas.</p>
+                </div>
+              </div>
+              <div class="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-start gap-2">
+                <span class="text-base">💧</span>
+                <div>
+                  <div class="text-[11px] font-extrabold text-sky-700 dark:text-sky-300">Hydration Relief</div>
+                  <p id="cycleHydrationTipText" class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">Boost water intake by 300–500 ml daily to ease uterine cramping and bloating.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive Monthly Period & Fertility Calendar -->
+          <div class="rounded-3xl p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 id="cycleCalendarMonthTitle" class="text-sm font-extrabold text-slate-900 dark:text-white">November 2026</h3>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400">Tap any date to log symptoms, mood, or flow</p>
+              </div>
+              <div class="flex items-center gap-1">
+                <button id="calPrevMonthBtn" type="button" class="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold hover:border-rose-400 transition">←</button>
+                <button id="calTodayMonthBtn" type="button" class="px-2.5 h-8 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-bold hover:border-rose-400 transition">Today</button>
+                <button id="calNextMonthBtn" type="button" class="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold hover:border-rose-400 transition">→</button>
+              </div>
+            </div>
+
+            <!-- Weekday Headers -->
+            <div class="grid grid-cols-7 gap-1 text-center">
+              <div class="text-[10px] font-extrabold text-slate-400 uppercase py-1">Sun</div>
+              <div class="text-[10px] font-extrabold text-slate-400 uppercase py-1">Mon</div>
+              <div class="text-[10px] font-extrabold text-slate-400 uppercase py-1">Tue</div>
+              <div class="text-[10px] font-extrabold text-slate-400 uppercase py-1">Wed</div>
+              <div class="text-[10px] font-extrabold text-slate-400 uppercase py-1">Thu</div>
+              <div class="text-[10px] font-extrabold text-slate-400 uppercase py-1">Fri</div>
+              <div class="text-[10px] font-extrabold text-slate-400 uppercase py-1">Sat</div>
+            </div>
+
+            <!-- Calendar Days Grid -->
+            <div id="cycleCalendarDaysGrid" class="grid grid-cols-7 gap-1 text-center"></div>
+
+            <!-- Calendar Legend -->
+            <div class="pt-2 border-t border-slate-200/70 dark:border-slate-700/60 flex flex-wrap items-center justify-center gap-3 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-rose-500 inline-block"></span> Logged Period</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-rose-500/20 border border-dashed border-rose-400 inline-block"></span> Predicted</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-purple-500/20 border border-purple-400 inline-block"></span> Fertile / Ovulation</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-sky-500 inline-block"></span> Water</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB B: DAILY SYMPTOMS, MOOD & FLOW LOGGER -->
+        <div id="cycleTabSymptoms" class="hidden space-y-4">
+          <div class="rounded-3xl p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200/70 dark:border-slate-700/60">
+              <div>
+                <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">💜 Daily Symptoms & Mood</h3>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Logging for <span id="symptomLogDateLabel" class="font-bold text-rose-500">Today</span></p>
+              </div>
+              <input id="symptomLogDateInput" type="date" class="text-xs font-bold bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 focus:outline-none" />
+            </div>
+
+            <!-- Mood Selector -->
+            <div>
+              <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Today's Mood</label>
+              <div id="cycleMoodButtonsGrid" class="grid grid-cols-5 gap-1.5"></div>
+            </div>
+
+            <!-- Physical Symptoms Multi-Select -->
+            <div>
+              <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Physical Symptoms</label>
+              <div id="cycleSymptomsButtonsGrid" class="grid grid-cols-2 gap-2"></div>
+            </div>
+
+            <!-- Flow Intensity -->
+            <div>
+              <label class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Flow Intensity (Optional)</label>
+              <div id="cycleFlowButtonsGrid" class="grid grid-cols-4 gap-1.5"></div>
+            </div>
+
+            <!-- Energy Level Slider -->
+            <div class="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <div class="flex justify-between items-center mb-1">
+                <span class="text-[11px] font-bold text-slate-700 dark:text-slate-200">⚡ Energy Level</span>
+                <span id="cycleEnergyValueLabel" class="text-xs font-extrabold text-purple-600 dark:text-purple-400">3 / 5</span>
+              </div>
+              <input id="cycleEnergySlider" type="range" min="1" max="5" value="3" class="w-full accent-purple-600 cursor-pointer" />
+              <div class="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                <span>Low</span>
+                <span>Balanced</span>
+                <span>High</span>
+              </div>
+            </div>
+
+            <!-- Personal Notes -->
+            <div>
+              <label for="cycleDailyNotesInput" class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Personal Notes</label>
+              <textarea id="cycleDailyNotesInput" rows="2" placeholder="Write any observations, cravings, or notes..." class="w-full text-xs p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-rose-500"></textarea>
+            </div>
+
+            <button id="saveCycleDailyLogBtn" type="button" class="w-full py-3 rounded-2xl bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-extrabold text-xs shadow-lg shadow-rose-500/25 transition">
+              💾 Save Daily Cycle Log
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB C: CYCLE & HYDRATION ANALYTICS / INSIGHTS -->
+        <div id="cycleTabAnalytics" class="hidden space-y-4">
+          <div class="rounded-3xl p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-3">
+            <div>
+              <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">📊 7-Day Hydration & Period Correlation</h3>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">Rose bars = Period days • Sky-Blue bars = Non-period days</p>
+            </div>
+            <div class="relative h-48 w-full bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-200/70 dark:border-slate-800">
+              <canvas id="cycleWaterCorrelationCanvas" class="w-full h-full block"></canvas>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-center">
+              <div class="text-[10px] font-extrabold uppercase text-rose-600 dark:text-rose-400">🩸 Period Days Avg</div>
+              <div id="avgWaterPeriodDaysText" class="text-lg font-extrabold text-slate-900 dark:text-white mt-1">0 ml</div>
+              <div class="text-[10px] text-slate-400">Daily water intake</div>
+            </div>
+            <div class="p-4 rounded-2xl bg-sky-500/10 border border-sky-500/25 text-center">
+              <div class="text-[10px] font-extrabold uppercase text-sky-600 dark:text-sky-400">💧 Regular Days Avg</div>
+              <div id="avgWaterNonPeriodDaysText" class="text-lg font-extrabold text-slate-900 dark:text-white mt-1">0 ml</div>
+              <div class="text-[10px] text-slate-400">Daily water intake</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-center">
+              <div class="text-[10px] font-bold uppercase text-slate-400">Avg Cycle Length</div>
+              <div class="text-base font-extrabold text-slate-900 dark:text-white mt-0.5"><span id="statCycleLengthText">28</span> Days</div>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-center">
+              <div class="text-[10px] font-bold uppercase text-slate-400">Avg Period Length</div>
+              <div class="text-base font-extrabold text-slate-900 dark:text-white mt-0.5"><span id="statPeriodLengthText">5</span> Days</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- End #periodCycleModeWrapper -->
     </main>
   </div>
 
@@ -1524,12 +1865,24 @@
       cloudIdToken: '',
       cloudRefreshToken: '',
       cloudLastSyncStr: '',
-      lastSeenWhatsNewVersion: ''
+      lastSeenWhatsNewVersion: '',
+      // Dual Mode & Period Cycle State (Saved locally & to Firebase Cloud!)
+      activeAppMode: 'water', // 'water' | 'period'
+      cycleLength: 28,
+      periodLength: 5,
+      periodLogs: [],
+      periodDailyLogs: {},
+      dailyWaterHistoryMap: {}
     };
 
     // Current app version & release changelog
-    const CURRENT_APP_VERSION = 'v3.3';
+    const CURRENT_APP_VERSION = 'v3.4';
     const WHATS_NEW_CHANGELOG = [
+      {
+        icon: '🌸',
+        title: 'Dual Water & Period Cycle Mode',
+        desc: 'Tap the top-left app logo anytime to smoothly switch between HydroPulse Water Tracker and the new Cycle & Flow Period Tracker! All data syncs to Cloud.'
+      },
       {
         icon: '☁️',
         title: 'Reliable Cloud Restore',
@@ -1622,6 +1975,12 @@
         streakMissedWarning: state.streakMissedWarning,
         completedDatesMap: state.completedDatesMap,
         themePref: state.themePref,
+        activeAppMode: state.activeAppMode,
+        cycleLength: state.cycleLength,
+        periodLength: state.periodLength,
+        periodLogs: state.periodLogs,
+        periodDailyLogs: state.periodDailyLogs,
+        dailyWaterHistoryMap: state.dailyWaterHistoryMap,
         updatedAt: Date.now()
       };
     }
@@ -1633,7 +1992,8 @@
         'address', 'shortCity', 'tempC', 'weatherCondition', 'wakeStartTime',
         'sleepEndTime', 'reminderIntervalMins', 'lastActiveDateStr',
         'currentIntakeMl', 'drinkLogs', 'streakDays', 'bestStreak',
-        'savedStreakBeforeMiss', 'streakMissedWarning', 'completedDatesMap', 'themePref'
+        'savedStreakBeforeMiss', 'streakMissedWarning', 'completedDatesMap', 'themePref',
+        'activeAppMode', 'cycleLength', 'periodLength', 'periodLogs', 'periodDailyLogs', 'dailyWaterHistoryMap'
       ];
       keys.forEach((k) => {
         if (payload[k] !== undefined) state[k] = payload[k];
@@ -1643,7 +2003,12 @@
       applyTheme(state.themePref);
       initAllScrollableWheels();
       saveState(true);
+      if (!state.dailyWaterHistoryMap || typeof state.dailyWaterHistoryMap !== 'object') {
+        state.dailyWaterHistoryMap = {};
+      }
+      state.dailyWaterHistoryMap[getLocalDateString()] = state.currentIntakeMl;
       renderUI();
+      renderPeriodCycleUI();
     }
 
     async function refreshFirebaseTokenIfNeeded() {
@@ -3402,6 +3767,479 @@
     // =========================================================================
     // MASTER 1-SECOND TICK LOOP
     // =========================================================================
+    // =========================================================================
+    // DUAL MODE SWITCHER (WATER MODE <-> PERIOD CYCLE MODE) & PERIOD ENGINE
+    // =========================================================================
+    let currentCycleTab = 'dashboard';
+    let cycleCalendarViewDate = new Date();
+    let selectedSymptomDateStr = getLocalDateString();
+
+    const CYCLE_MOODS = [
+      { name: 'Happy', emoji: '😊' },
+      { name: 'Calm', emoji: '😌' },
+      { name: 'Tired', emoji: '😴' },
+      { name: 'Anxious', emoji: '😰' },
+      { name: 'Moody', emoji: '😤' }
+    ];
+
+    const CYCLE_SYMPTOMS = [
+      'Cramps', 'Bloating', 'Headache', 'Acne',
+      'Backache', 'Fatigue', 'Craving Sweets', 'Tender Breasts'
+    ];
+
+    const CYCLE_FLOWS = ['Spotting', 'Light', 'Medium', 'Heavy'];
+
+    function applyAppModeUI(animateFlip = false) {
+      const isPeriod = state.activeAppMode === 'period';
+      const waterWrapper = document.getElementById('waterModeViewWrapper');
+      const periodWrapper = document.getElementById('periodCycleModeWrapper');
+      const logoBtn = document.getElementById('topLogoModeSwitchBtn');
+      const waterSvg = document.getElementById('logoWaterModeSvg');
+      const periodSvg = document.getElementById('logoPeriodModeSvg');
+      const cornerDot = document.getElementById('logoModeCornerDot');
+      const brandTitle = document.getElementById('headerBrandTitle');
+      const subStatus = document.getElementById('headerSubStatus');
+
+      if (animateFlip && logoBtn) {
+        logoBtn.classList.remove('animate-logo-flip');
+        void logoBtn.offsetWidth;
+        logoBtn.classList.add('animate-logo-flip');
+      }
+
+      if (isPeriod) {
+        waterWrapper.classList.add('hidden');
+        periodWrapper.classList.remove('hidden');
+        periodWrapper.classList.remove('animate-mode-page');
+        void periodWrapper.offsetWidth;
+        periodWrapper.classList.add('animate-mode-page');
+
+        logoBtn.className = 'relative w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-400 via-rose-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-rose-500/30 active:scale-90 transition-all duration-300 group';
+        waterSvg.classList.add('hidden');
+        periodSvg.classList.remove('hidden');
+        cornerDot.className = 'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-sky-500 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[7px] text-white font-bold shadow';
+        cornerDot.textContent = '💧';
+        brandTitle.textContent = 'Cycle & Flow';
+        subStatus.textContent = 'Period Companion • Tap logo for Water 💧';
+        renderPeriodCycleUI();
+      } else {
+        periodWrapper.classList.add('hidden');
+        waterWrapper.classList.remove('hidden');
+        waterWrapper.classList.remove('animate-mode-page');
+        void waterWrapper.offsetWidth;
+        waterWrapper.classList.add('animate-mode-page');
+
+        logoBtn.className = 'relative w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center text-white shadow-md shadow-sky-500/30 active:scale-90 transition-all duration-300 group';
+        periodSvg.classList.add('hidden');
+        waterSvg.classList.remove('hidden');
+        cornerDot.className = 'absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-rose-500 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[7px] text-white font-bold shadow';
+        cornerDot.textContent = '🌸';
+        brandTitle.textContent = 'HydroPulse';
+        subStatus.textContent = 'Tap logo to switch to Period Cycle 🌸';
+        setTimeout(resizeCanvas, 50);
+      }
+      saveState();
+    }
+
+    function ensureInitialPeriodData() {
+      if (!Array.isArray(state.periodLogs)) state.periodLogs = [];
+      if (!state.periodDailyLogs || typeof state.periodDailyLogs !== 'object') state.periodDailyLogs = {};
+      if (!state.dailyWaterHistoryMap || typeof state.dailyWaterHistoryMap !== 'object') state.dailyWaterHistoryMap = {};
+      state.dailyWaterHistoryMap[getLocalDateString()] = state.currentIntakeMl;
+      state.cycleLength = Math.min(45, Math.max(20, Number(state.cycleLength) || 28));
+      state.periodLength = Math.min(10, Math.max(2, Number(state.periodLength) || 5));
+    }
+
+    function renderPeriodCycleUI() {
+      ensureInitialPeriodData();
+      const metrics = calculateWaterMetrics();
+      document.getElementById('cycleTodayWaterText').textContent = state.currentIntakeMl;
+      document.getElementById('cycleWaterTargetText').textContent = metrics.totalDailyMl;
+      document.getElementById('statCycleLengthText').textContent = state.cycleLength;
+      document.getElementById('statPeriodLengthText').textContent = state.periodLength;
+
+      const ovDay = Math.max(8, Math.round(state.cycleLength - 14));
+      document.getElementById('cycleTotalLenNum').textContent = state.cycleLength;
+      document.getElementById('cycleOvulationDayNum').textContent = ovDay;
+
+      // Calculate current cycle day & phase
+      let curCycleDay = 1;
+      let hasLoggedPeriod = state.periodLogs.length > 0;
+      if (hasLoggedPeriod) {
+        const sorted = state.periodLogs.slice().sort((a, b) => new Date(b.start) - new Date(a.start));
+        const lastStartParts = sorted[0].start.split('-').map(Number);
+        const lastStartDate = new Date(lastStartParts[0], lastStartParts[1] - 1, lastStartParts[2]);
+        const now = new Date();
+        const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const diffDays = Math.floor((todayMidnight - lastStartDate) / (1000 * 60 * 60 * 24)) + 1;
+        curCycleDay = diffDays > 0 ? ((diffDays - 1) % state.cycleLength) + 1 : 1;
+
+        document.getElementById('cycleDayHeadlineText').textContent = `Day ${curCycleDay} of Cycle`;
+        const daysLeft = state.cycleLength - curCycleDay;
+        document.getElementById('nextPeriodCountdownText').textContent =
+          daysLeft === 0
+            ? 'Your next period is predicted to start today'
+            : `Next period predicted in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`;
+      } else {
+        document.getElementById('cycleDayHeadlineText').textContent = 'No Period Logged Yet';
+        document.getElementById('nextPeriodCountdownText').textContent = 'Tap "+ Log Period" to start cycle predictions';
+      }
+
+      document.getElementById('cycleCurDayNum').textContent = curCycleDay;
+
+      let phaseInfo = {
+        name: 'Menstrual',
+        desc: 'Estrogen and progesterone drop as the uterine lining sheds. Gentle rest and warm fluids help.',
+        nutrition: 'Iron-rich foods (spinach, lentils), dark chocolate, and warm chamomile or ginger tea.',
+        hydration: 'Boost water intake by +300 to 500 ml today to ease uterine cramps and combat fatigue.'
+      };
+
+      if (curCycleDay <= state.periodLength) {
+        phaseInfo = {
+          name: 'Menstrual',
+          desc: 'Estrogen and progesterone drop as the uterine lining sheds. Gentle rest and warm fluids help.',
+          nutrition: 'Iron-rich foods (spinach, lentils), dark chocolate, and warm chamomile or ginger tea.',
+          hydration: 'Boost water intake by +300 to 500 ml today to ease uterine cramps and combat fatigue.'
+        };
+      } else if (curCycleDay < ovDay - 3) {
+        phaseInfo = {
+          name: 'Follicular',
+          desc: 'Estrogen rises, boosting your energy, mood, and physical stamina.',
+          nutrition: 'Fresh salads, fermented foods, lean proteins, and sprouted grains.',
+          hydration: 'Consistent hydration supports glowing skin and rising metabolic energy.'
+        };
+      } else if (curCycleDay <= ovDay + 2) {
+        phaseInfo = {
+          name: 'Ovulation',
+          desc: 'Peak fertility window! Estrogen peaks and energy and focus are at their highest.',
+          nutrition: 'Antioxidant-rich berries, leafy greens, almonds, and high-fiber veggies.',
+          hydration: 'Add a pinch of electrolytes or lemon to your water to sustain peak ovulation stamina.'
+        };
+      } else {
+        phaseInfo = {
+          name: 'Luteal',
+          desc: 'Progesterone rises. You may experience pre-menstrual cravings, lower energy, or mild bloating.',
+          nutrition: 'Complex carbs (oats, sweet potatoes), magnesium-rich seeds, and herbal infusions.',
+          hydration: 'Drinking extra water flushes excess sodium and significantly reduces luteal bloating.'
+        };
+      }
+
+      document.getElementById('cyclePhaseNameText').textContent = `${phaseInfo.name} Phase`;
+      document.getElementById('insightPhaseTag').textContent = phaseInfo.name;
+      document.getElementById('cyclePhaseDescText').textContent = phaseInfo.desc;
+      document.getElementById('cycleNutritionTipText').textContent = phaseInfo.nutrition;
+      document.getElementById('cycleHydrationTipText').textContent = phaseInfo.hydration;
+
+      renderCycleCalendarGrid();
+      renderCycleSymptomsForm();
+      renderCycleWaterStatsAndChart();
+    }
+
+    function isDateInLoggedPeriod(dateStr) {
+      return state.periodLogs.some((p) => p.start && dateStr >= p.start && dateStr <= (p.end || p.start));
+    }
+
+    function renderCycleCalendarGrid() {
+      const year = cycleCalendarViewDate.getFullYear();
+      const month = cycleCalendarViewDate.getMonth();
+      const monthTitle = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      document.getElementById('cycleCalendarMonthTitle').textContent = monthTitle;
+
+      const firstDayIdx = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const todayStr = getLocalDateString();
+
+      const sorted = state.periodLogs.slice().sort((a, b) => new Date(a.start) - new Date(b.start));
+      let latestStartDate = null;
+      if (sorted.length > 0) {
+        const pts = sorted[sorted.length - 1].start.split('-').map(Number);
+        latestStartDate = new Date(pts[0], pts[1] - 1, pts[2]);
+      }
+
+      let html = '';
+      for (let b = 0; b < firstDayIdx; b++) {
+        html += `<div class="h-11 rounded-xl"></div>`;
+      }
+
+      const ovDay = Math.max(8, Math.round(state.cycleLength - 14));
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const cellDate = new Date(year, month, d);
+        const dateStr = getLocalDateString(cellDate);
+        const isToday = dateStr === todayStr;
+        const isLoggedPeriod = isDateInLoggedPeriod(dateStr);
+
+        let isPredPeriod = false;
+        let isOvulation = false;
+        let isFertile = false;
+
+        if (latestStartDate) {
+          const diffDays = Math.floor((cellDate - latestStartDate) / (1000 * 60 * 60 * 24));
+          if (diffDays >= 0) {
+            const cDay = (diffDays % state.cycleLength) + 1;
+            if (cDay <= state.periodLength) isPredPeriod = true;
+            if (cDay === ovDay) isOvulation = true;
+            if (cDay >= ovDay - 3 && cDay <= ovDay + 2) isFertile = true;
+          }
+        }
+
+        const waterMl = state.dailyWaterHistoryMap[dateStr] || (isToday ? state.currentIntakeMl : 0);
+        const hasSym = Boolean(
+          state.periodDailyLogs[dateStr] &&
+          ((state.periodDailyLogs[dateStr].symptoms && state.periodDailyLogs[dateStr].symptoms.length > 0) ||
+            state.periodDailyLogs[dateStr].notes ||
+            state.periodDailyLogs[dateStr].flow)
+        );
+
+        let boxClass = 'bg-white dark:bg-slate-900 border-slate-200/70 dark:border-slate-800 text-slate-700 dark:text-slate-200';
+        if (isLoggedPeriod) {
+          boxClass = 'bg-rose-500 text-white border-rose-500 shadow-sm';
+        } else if (isOvulation) {
+          boxClass = 'bg-purple-500/25 border-purple-500 text-purple-700 dark:text-purple-300 font-extrabold';
+        } else if (isFertile) {
+          boxClass = 'bg-purple-500/10 border-purple-400/50 text-purple-700 dark:text-purple-300';
+        } else if (isPredPeriod) {
+          boxClass = 'bg-rose-500/10 border-dashed border-rose-400 text-rose-600 dark:text-rose-300';
+        }
+
+        const todayRing = isToday ? 'ring-2 ring-sky-500 font-extrabold' : '';
+
+        html += `
+          <button type="button" data-cal-date="${dateStr}" class="cycle-cal-day-btn h-11 rounded-xl p-1 border flex flex-col items-center justify-between transition active:scale-95 ${boxClass} ${todayRing}">
+            <span class="text-xs leading-none mt-0.5">${d}</span>
+            <div class="flex items-center gap-0.5">
+              ${waterMl > 0 ? `<span class="w-1.5 h-1.5 rounded-full ${isLoggedPeriod ? 'bg-white' : 'bg-sky-500'}"></span>` : ''}
+              ${hasSym ? `<span class="w-1.5 h-1.5 rounded-full ${isLoggedPeriod ? 'bg-amber-200' : 'bg-purple-500'}"></span>` : ''}
+            </div>
+          </button>
+        `;
+      }
+
+      const gridEl = document.getElementById('cycleCalendarDaysGrid');
+      if (gridEl) {
+        gridEl.innerHTML = html;
+        gridEl.querySelectorAll('.cycle-cal-day-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            selectedSymptomDateStr = btn.getAttribute('data-cal-date');
+            switchCycleSubTab('symptoms');
+          });
+        });
+      }
+    }
+
+    function getActiveSymptomEntry() {
+      if (!state.periodDailyLogs[selectedSymptomDateStr]) {
+        state.periodDailyLogs[selectedSymptomDateStr] = {
+          mood: 'Happy',
+          symptoms: [],
+          flow: '',
+          energy: 3,
+          notes: ''
+        };
+      }
+      return state.periodDailyLogs[selectedSymptomDateStr];
+    }
+
+    function renderCycleSymptomsForm() {
+      const entry = getActiveSymptomEntry();
+      document.getElementById('symptomLogDateInput').value = selectedSymptomDateStr;
+      document.getElementById('symptomLogDateLabel').textContent =
+        selectedSymptomDateStr === getLocalDateString() ? `Today (${selectedSymptomDateStr})` : selectedSymptomDateStr;
+
+      // Moods
+      const moodGrid = document.getElementById('cycleMoodButtonsGrid');
+      moodGrid.innerHTML = CYCLE_MOODS.map((m) => {
+        const active = entry.mood === m.name;
+        return `
+          <button type="button" data-mood="${m.name}" class="cycle-mood-btn p-2 rounded-2xl border flex flex-col items-center justify-center transition ${
+            active
+              ? 'bg-purple-600 text-white border-purple-600 shadow-sm scale-105'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+          }">
+            <span class="text-xl">${m.emoji}</span>
+            <span class="text-[10px] font-bold mt-0.5">${m.name}</span>
+          </button>
+        `;
+      }).join('');
+
+      moodGrid.querySelectorAll('.cycle-mood-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          entry.mood = btn.getAttribute('data-mood');
+          renderCycleSymptomsForm();
+        });
+      });
+
+      // Symptoms
+      const symGrid = document.getElementById('cycleSymptomsButtonsGrid');
+      symGrid.innerHTML = CYCLE_SYMPTOMS.map((sym) => {
+        const active = entry.symptoms.includes(sym);
+        return `
+          <button type="button" data-sym="${sym}" class="cycle-sym-btn py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-between transition ${
+            active
+              ? 'bg-rose-500 text-white border-rose-500 shadow-sm'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+          }">
+            <span>${sym}</span>
+            <span>${active ? '✓' : '+'}</span>
+          </button>
+        `;
+      }).join('');
+
+      symGrid.querySelectorAll('.cycle-sym-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const sName = btn.getAttribute('data-sym');
+          const idx = entry.symptoms.indexOf(sName);
+          if (idx > -1) entry.symptoms.splice(idx, 1);
+          else entry.symptoms.push(sName);
+          renderCycleSymptomsForm();
+        });
+      });
+
+      // Flow intensity
+      const flowGrid = document.getElementById('cycleFlowButtonsGrid');
+      flowGrid.innerHTML = CYCLE_FLOWS.map((fl) => {
+        const active = entry.flow === fl;
+        return `
+          <button type="button" data-flow="${fl}" class="cycle-flow-btn py-2 rounded-xl border text-xs font-bold text-center transition ${
+            active
+              ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+          }">
+            ${fl}
+          </button>
+        `;
+      }).join('');
+
+      flowGrid.querySelectorAll('.cycle-flow-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const fl = btn.getAttribute('data-flow');
+          entry.flow = entry.flow === fl ? '' : fl;
+          renderCycleSymptomsForm();
+        });
+      });
+
+      document.getElementById('cycleEnergySlider').value = entry.energy || 3;
+      document.getElementById('cycleEnergyValueLabel').textContent = `${entry.energy || 3} / 5`;
+      document.getElementById('cycleDailyNotesInput').value = entry.notes || '';
+    }
+
+    function renderCycleWaterStatsAndChart() {
+      let periodSum = 0, periodCnt = 0;
+      let nonPeriodSum = 0, nonPeriodCnt = 0;
+
+      Object.keys(state.dailyWaterHistoryMap || {}).forEach((dStr) => {
+        const val = Number(state.dailyWaterHistoryMap[dStr]) || 0;
+        if (val <= 0) return;
+        if (isDateInLoggedPeriod(dStr)) {
+          periodSum += val;
+          periodCnt++;
+        } else {
+          nonPeriodSum += val;
+          nonPeriodCnt++;
+        }
+      });
+
+      document.getElementById('avgWaterPeriodDaysText').textContent =
+        `${periodCnt > 0 ? Math.round(periodSum / periodCnt) : 0} ml`;
+      document.getElementById('avgWaterNonPeriodDaysText').textContent =
+        `${nonPeriodCnt > 0 ? Math.round(nonPeriodSum / nonPeriodCnt) : state.currentIntakeMl} ml`;
+
+      // Draw 7-Day Bar Chart on #cycleWaterCorrelationCanvas
+      const cCanvas = document.getElementById('cycleWaterCorrelationCanvas');
+      if (!cCanvas) return;
+      const rect = cCanvas.getBoundingClientRect();
+      if (rect.width === 0) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      cCanvas.width = rect.width * dpr;
+      cCanvas.height = rect.height * dpr;
+      const cCtx = cCanvas.getContext('2d');
+      cCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cCtx.clearRect(0, 0, rect.width, rect.height);
+
+      const metrics = calculateWaterMetrics();
+      const maxVal = Math.max(metrics.totalDailyMl, 2500);
+      const wNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const now = new Date();
+      const barCount = 7;
+      const chartH = rect.height - 28;
+      const slotW = rect.width / barCount;
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const dStr = getLocalDateString(d);
+        const val = i === 0 ? state.currentIntakeMl : (Number(state.dailyWaterHistoryMap[dStr]) || 0);
+        const isPer = isDateInLoggedPeriod(dStr);
+        const colIdx = 6 - i;
+        const barW = Math.min(26, slotW * 0.55);
+        const x = colIdx * slotW + (slotW - barW) / 2;
+        const barH = Math.max(6, Math.min(chartH - 18, (val / maxVal) * (chartH - 18)));
+        const y = chartH - barH;
+
+        cCtx.fillStyle = isPer ? '#f43f5e' : '#0ea5e9';
+        cCtx.beginPath();
+        cCtx.roundRect(x, y, barW, barH, 6);
+        cCtx.fill();
+
+        cCtx.fillStyle = '#94a3b8';
+        cCtx.font = 'bold 10px Inter, sans-serif';
+        cCtx.textAlign = 'center';
+        cCtx.fillText(wNames[d.getDay()], colIdx * slotW + slotW / 2, rect.height - 8);
+        if (val > 0) {
+          cCtx.fillText(`${val}`, colIdx * slotW + slotW / 2, y - 4);
+        }
+      }
+    }
+
+    function switchCycleSubTab(tabName) {
+      currentCycleTab = tabName;
+      document.getElementById('cycleTabDashboard').classList.toggle('hidden', tabName !== 'dashboard');
+      document.getElementById('cycleTabSymptoms').classList.toggle('hidden', tabName !== 'symptoms');
+      document.getElementById('cycleTabAnalytics').classList.toggle('hidden', tabName !== 'analytics');
+
+      document.querySelectorAll('.cycle-tab-btn').forEach((btn) => {
+        const t = btn.getAttribute('data-cycle-tab');
+        if (t === tabName) {
+          btn.className = 'cycle-tab-btn py-2 px-2 rounded-xl text-xs font-extrabold bg-rose-500 text-white shadow-sm transition flex items-center justify-center gap-1.5';
+        } else {
+          btn.className = 'cycle-tab-btn py-2 px-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-rose-500 transition flex items-center justify-center gap-1.5';
+        }
+      });
+
+      renderPeriodCycleUI();
+    }
+
+    function openPeriodSettingsPopup() {
+      const todayStr = getLocalDateString();
+      document.getElementById('periodStartInput').value = todayStr;
+      const endD = new Date();
+      endD.setDate(endD.getDate() + (state.periodLength - 1));
+      document.getElementById('periodEndInput').value = getLocalDateString(endD);
+      document.getElementById('cycleLengthInput').value = state.cycleLength;
+      document.getElementById('periodLengthInput').value = state.periodLength;
+
+      const histList = document.getElementById('loggedPeriodsHistoryList');
+      if (state.periodLogs.length === 0) {
+        histList.innerHTML = `<div class="text-[11px] text-slate-400">No periods logged yet.</div>`;
+      } else {
+        histList.innerHTML = state.periodLogs.slice().reverse().map((p, idx) => `
+          <div class="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-[11px] font-bold">
+            <span>🩸 ${p.start} → ${p.end || p.start}</span>
+            <button type="button" data-del-period="${state.periodLogs.length - 1 - idx}" class="del-period-btn text-rose-500 hover:text-rose-700 px-1">✕</button>
+          </div>
+        `).join('');
+        histList.querySelectorAll('.del-period-btn').forEach((b) => {
+          b.addEventListener('click', () => {
+            const rmIdx = Number(b.getAttribute('data-del-period'));
+            state.periodLogs.splice(rmIdx, 1);
+            saveState();
+            openPeriodSettingsPopup();
+            renderPeriodCycleUI();
+          });
+        });
+      }
+
+      openPopupWithBounce('logPeriodPopupModal', 'logPeriodPopupCard');
+    }
+
     function handleMasterSecondTick() {
       checkAndHandleDayRollover();
 
@@ -3644,7 +4482,7 @@
       document.getElementById('closeWhatsNewBtn').addEventListener('click', closeWhatsNewModal);
       document.getElementById('gotItWhatsNewBtn').addEventListener('click', closeWhatsNewModal);
 
-      ['streakPopupModal', 'reminderPopupModal', 'weatherPopupModal', 'formulaModal', 'whatsNewModal'].forEach((mId) => {
+      ['streakPopupModal', 'reminderPopupModal', 'weatherPopupModal', 'formulaModal', 'whatsNewModal', 'logPeriodPopupModal'].forEach((mId) => {
         const mEl = document.getElementById(mId);
         if (mEl) {
           mEl.addEventListener('click', (e) => {
@@ -4106,6 +4944,100 @@
         } catch (e) {
           showStatusToast('⚠️', 'Invalid backup code format.');
         }
+      });
+
+      // Top-Left App Logo Mode Switcher (Water Mode <-> Period Cycle Mode)
+      applyAppModeUI(false);
+
+      document.getElementById('topLogoModeSwitchBtn').addEventListener('click', () => {
+        state.activeAppMode = state.activeAppMode === 'period' ? 'water' : 'period';
+        if (state.soundEnabled) playWaterPourSound(150);
+        applyAppModeUI(true);
+        showStatusToast(
+          state.activeAppMode === 'period' ? '🌸' : '💧',
+          state.activeAppMode === 'period'
+            ? 'Switched to Period Cycle & Flow Mode!'
+            : 'Switched to HydroPulse Water Mode!'
+        );
+      });
+
+      document.querySelectorAll('.cycle-tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          switchCycleSubTab(btn.getAttribute('data-cycle-tab'));
+        });
+      });
+
+      document.getElementById('cycleQuickAddWaterBtn').addEventListener('click', () => {
+        addWaterIntake(200);
+      });
+
+      document.getElementById('calPrevMonthBtn').addEventListener('click', () => {
+        cycleCalendarViewDate.setMonth(cycleCalendarViewDate.getMonth() - 1);
+        cycleCalendarViewDate = new Date(cycleCalendarViewDate);
+        renderCycleCalendarGrid();
+      });
+
+      document.getElementById('calNextMonthBtn').addEventListener('click', () => {
+        cycleCalendarViewDate.setMonth(cycleCalendarViewDate.getMonth() + 1);
+        cycleCalendarViewDate = new Date(cycleCalendarViewDate);
+        renderCycleCalendarGrid();
+      });
+
+      document.getElementById('calTodayMonthBtn').addEventListener('click', () => {
+        cycleCalendarViewDate = new Date();
+        renderCycleCalendarGrid();
+      });
+
+      document.getElementById('symptomLogDateInput').addEventListener('change', (e) => {
+        if (e.target.value) {
+          selectedSymptomDateStr = e.target.value;
+          renderCycleSymptomsForm();
+        }
+      });
+
+      document.getElementById('cycleEnergySlider').addEventListener('input', (e) => {
+        const entry = getActiveSymptomEntry();
+        entry.energy = Number(e.target.value) || 3;
+        document.getElementById('cycleEnergyValueLabel').textContent = `${entry.energy} / 5`;
+      });
+
+      document.getElementById('cycleDailyNotesInput').addEventListener('input', (e) => {
+        const entry = getActiveSymptomEntry();
+        entry.notes = e.target.value;
+      });
+
+      document.getElementById('saveCycleDailyLogBtn').addEventListener('click', () => {
+        const entry = getActiveSymptomEntry();
+        entry.notes = document.getElementById('cycleDailyNotesInput').value.trim();
+        saveState();
+        renderPeriodCycleUI();
+        showStatusToast('💜', `Saved cycle log for ${selectedSymptomDateStr}!`);
+      });
+
+      document.getElementById('openLogPeriodModalBtn').addEventListener('click', openPeriodSettingsPopup);
+      document.getElementById('openCycleSettingsModalBtn').addEventListener('click', openPeriodSettingsPopup);
+      document.getElementById('closeLogPeriodModalBtn').addEventListener('click', () => {
+        closePopupWithBounce('logPeriodPopupModal', 'logPeriodPopupCard');
+      });
+
+      document.getElementById('savePeriodAndSettingsBtn').addEventListener('click', () => {
+        const sDate = document.getElementById('periodStartInput').value;
+        const eDate = document.getElementById('periodEndInput').value;
+        const cLen = Math.min(45, Math.max(20, Number(document.getElementById('cycleLengthInput').value) || 28));
+        const pLen = Math.min(10, Math.max(2, Number(document.getElementById('periodLengthInput').value) || 5));
+
+        state.cycleLength = cLen;
+        state.periodLength = pLen;
+        if (sDate) {
+          const exists = state.periodLogs.some((p) => p.start === sDate);
+          if (!exists) {
+            state.periodLogs.push({ start: sDate, end: eDate || sDate });
+          }
+        }
+        saveState();
+        renderPeriodCycleUI();
+        closePopupWithBounce('logPeriodPopupModal', 'logPeriodPopupCard');
+        showStatusToast('🌸', 'Period dates & cycle settings saved!');
       });
 
       document.getElementById('openFormulaBtn').addEventListener('click', () => {
