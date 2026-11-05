@@ -29,7 +29,7 @@ import java.net.URL;
 public class MainActivity extends Activity {
     private static final String LOCAL_ASSET_URL = "file:///android_asset/index.html";
     private static final String GITHUB_RAW_UPDATE_URL = "https://raw.githubusercontent.com/Amiya-cmd/hydroPulse/main/app/src/main/assets/index.html";
-    public static final String CHANNEL_ID = "hydropulse_reminders_channel";
+    public static final String CHANNEL_ID = "hydropulse_reminders_v2";
     public static final String PREFS_NOTIF_LOGS = "hydropulse_notif_logs";
     private static MainActivity activeInstance;
     private WebView webView;
@@ -150,15 +150,23 @@ public class MainActivity extends Activity {
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID,
-                "HydroPulse Water Reminders",
-                NotificationManager.IMPORTANCE_HIGH
-            );
-            channel.setDescription("Interactive hydration reminders with 1-tap water logging");
-            channel.enableVibration(true);
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) {
+                NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "HydroPulse Hydration Reminders",
+                    NotificationManager.IMPORTANCE_HIGH
+                );
+                channel.setDescription("Heads-up pop-up reminders with 1-tap water logging");
+                channel.enableVibration(true);
+                channel.setVibrationPattern(new long[]{0, 300, 200, 300});
+                channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
+                channel.setBypassDnd(true);
+                android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_INSTANT)
+                    .build();
+                channel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes);
                 manager.createNotificationChannel(channel);
             }
         }

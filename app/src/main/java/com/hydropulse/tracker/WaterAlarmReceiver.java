@@ -124,27 +124,59 @@ public class WaterAlarmReceiver extends BroadcastReceiver {
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
+        // Ensure NotificationChannel exists with IMPORTANCE_HIGH so Android pops up Heads-Up banner!
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) {
+                NotificationChannel channel = new NotificationChannel(
+                    MainActivity.CHANNEL_ID,
+                    "HydroPulse Hydration Reminders",
+                    NotificationManager.IMPORTANCE_HIGH
+                );
+                channel.setDescription("Heads-up pop-up reminders with 1-tap water logging");
+                channel.enableVibration(true);
+                channel.setVibrationPattern(new long[]{0, 300, 200, 300});
+                channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+                channel.setBypassDnd(true);
+                android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_INSTANT)
+                    .build();
+                channel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes);
+                nm.createNotificationChannel(channel);
+            }
+        }
+
         Notification.Builder builder;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             builder = new Notification.Builder(context, MainActivity.CHANNEL_ID);
         } else {
             builder = new Notification.Builder(context);
-            builder.setPriority(Notification.PRIORITY_HIGH);
         }
+
+        // Exact match with in-app banner headline: "Time to drink [X] ml of water!"
+        String exactTitle = "Time to drink " + perIntervalMl + " ml of water!";
+        String exactSubtitle = "Tap +Drink to log your " + intervalMins + "-min sip quota (" + currentIntakeMl + " / " + totalDailyMl + " ml).";
 
         Icon smallDropIcon = Icon.createWithBitmap(createSmallDropSilhouetteBitmap());
         builder.setSmallIcon(smallDropIcon)
                .setLargeIcon(createHydroPulseLogoBitmap())
-               .setContentTitle(title)
-               .setContentText(shortBody)
-               .setStyle(new Notification.BigTextStyle().bigText(bigBody).setSummaryText("HydroPulse • " + intervalMins + "-Min Sip Quota"))
+               .setContentTitle(exactTitle)
+               .setContentText(exactSubtitle)
+               .setStyle(new Notification.BigTextStyle()
+                   .bigText(exactSubtitle)
+                   .setSummaryText(intervalMins + "-MIN HYDRATION ALERT"))
                .setColor(Color.parseColor("#0284C7"))
                .setAutoCancel(true)
+               .setPriority(Notification.PRIORITY_MAX)
+               .setDefaults(Notification.DEFAULT_ALL)
+               .setVibrate(new long[]{0, 300, 200, 300})
+               .setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI)
                .setContentIntent(contentIntent);
 
         Notification.Action drinkAction = new Notification.Action.Builder(
             smallDropIcon,
-            "💧 +Add " + perIntervalMl + " ml Now",
+            "💧 +Drink " + perIntervalMl + " ml",
             addDrinkPending
         ).build();
         builder.addAction(drinkAction);
