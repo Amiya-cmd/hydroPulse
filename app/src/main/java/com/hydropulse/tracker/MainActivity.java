@@ -225,6 +225,24 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void saveCloudBackupNative(String accountKey, String jsonData) {
+            try {
+                SharedPreferences prefs = context.getSharedPreferences("hydropulse_persistent_backup", Context.MODE_PRIVATE);
+                prefs.edit().putString(accountKey, jsonData).apply();
+            } catch (Exception ignored) {}
+        }
+
+        @JavascriptInterface
+        public String getCloudBackupNative(String accountKey) {
+            try {
+                SharedPreferences prefs = context.getSharedPreferences("hydropulse_persistent_backup", Context.MODE_PRIVATE);
+                return prefs.getString(accountKey, "");
+            } catch (Exception ignored) {
+                return "";
+            }
+        }
+
+        @JavascriptInterface
         public String consumePendingNotificationDrinks() {
             SharedPreferences prefs = context.getSharedPreferences(PREFS_NOTIF_LOGS, MODE_PRIVATE);
             String json = prefs.getString("pending_json", "[]");

@@ -486,6 +486,38 @@
   </div>
 
   <!-- ===================================================================== -->
+  <!-- 2.5 "WHAT'S NEW IN THIS UPDATE" POP-UP WINDOW                         -->
+  <!-- ===================================================================== -->
+  <div id="whatsNewModal" class="fixed inset-0 z-[69] bg-slate-950/45 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="whatsNewCard" class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-sky-500/40 rounded-3xl max-w-sm w-[92%] max-h-[82vh] overflow-y-auto p-5 shadow-2xl bounce-in space-y-3.5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🚀</span>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h3 class="text-base font-extrabold text-slate-900 dark:text-white leading-tight">What's New</h3>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500/15 text-sky-600 dark:text-sky-400" id="whatsNewVersionBadge">v3.3</span>
+            </div>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400">Latest features & improvements</p>
+          </div>
+        </div>
+        <button id="closeWhatsNewBtn" type="button" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center font-bold text-sm transition">
+          ✕
+        </button>
+      </div>
+
+      <!-- Scrollable Changelog List -->
+      <div id="whatsNewListContainer" class="space-y-2.5 text-xs text-slate-600 dark:text-slate-300">
+        <!-- Populated dynamically based on app version -->
+      </div>
+
+      <button id="gotItWhatsNewBtn" type="button" class="w-full py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-extrabold text-xs shadow-md shadow-sky-600/25 transition">
+        Awesome, Let's Go! ✨
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
   <!-- 3. CONTEXTUAL ANCHORED FEATURE TUTORIAL WITH DIRECTIONAL ARROWS       -->
   <!-- ===================================================================== -->
   <div id="featureTutorialModal" class="fixed inset-0 z-[68] bg-slate-950/25 hidden">
@@ -1105,6 +1137,14 @@
             </button>
           </div>
 
+          <!-- Line 8b: What's New in This Version -->
+          <div class="py-3">
+            <button id="openWhatsNewFromSettingsBtn" type="button" class="w-full flex items-center justify-between py-1 text-left font-bold text-slate-800 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 transition">
+              <span>🚀 What's New (v3.3)</span>
+              <span class="text-sky-500 font-semibold text-[11px]">New →</span>
+            </button>
+          </div>
+
           <!-- Line 9: Share with Friends (Slightly transparent — shows "Available soon" on click) -->
           <div class="py-3">
             <button id="shareWithFriendsBtn" type="button" class="w-full flex items-center justify-between py-1 text-left font-bold text-slate-500 dark:text-slate-400 opacity-55 hover:opacity-75 transition">
@@ -1126,7 +1166,7 @@
 
       <!-- Footer inside Sidebar -->
       <div class="pt-4 border-t border-slate-200/70 dark:border-slate-800 text-center">
-        <p class="text-[10px] font-semibold text-slate-400">HydroPulse v3.2 • Smart Hydration</p>
+        <p class="text-[10px] font-semibold text-slate-400">HydroPulse v3.3 • Smart Hydration</p>
       </div>
     </aside>
   </div>
@@ -1483,8 +1523,34 @@
       cloudUserUid: '',
       cloudIdToken: '',
       cloudRefreshToken: '',
-      cloudLastSyncStr: ''
+      cloudLastSyncStr: '',
+      lastSeenWhatsNewVersion: ''
     };
+
+    // Current app version & release changelog
+    const CURRENT_APP_VERSION = 'v3.3';
+    const WHATS_NEW_CHANGELOG = [
+      {
+        icon: '☁️',
+        title: 'Reliable Cloud Restore',
+        desc: 'Reinstalling or signing in on a new device now pulls and restores your streak and logs before saving.'
+      },
+      {
+        icon: '🔕',
+        title: 'Silent In-App Screen',
+        desc: 'In-app alarm ring sound is now silenced while viewing the screen. Outer notifications keep full sound and vibration.'
+      },
+      {
+        icon: '💧',
+        title: 'Custom Notification +Drink Pill',
+        desc: 'Outer phone notification now has an interactive +Drink pill to log water directly without opening the app.'
+      },
+      {
+        icon: '📅',
+        title: 'Calendar-Accurate Streak',
+        desc: 'Real calendar weekdays and dates on the streak strip with Streak Broken warning badges for missed days.'
+      }
+    ];
 
     let state = loadState();
     let audioCtx = null;
@@ -1602,39 +1668,91 @@
       return state.cloudIdToken;
     }
 
+    function sanitizeEmailKey(email) {
+      if (!email) return 'anonymous';
+      return email.toLowerCase().replace(/\./g, '_dot_').replace(/@/g, '_at_').replace(/[^a-zA-Z0-9_-]/g, '_');
+    }
+
+    async function ensureFirebaseAuthToken() {
+      if (state.cloudIdToken) {
+        const token = await refreshFirebaseTokenIfNeeded();
+        if (token) return token;
+      }
+      if (!state.firebaseApiKey) return '';
+      // Anonymous authentication fallback so Firebase REST rules accept requests
+      try {
+        const resp = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${encodeURIComponent(state.firebaseApiKey)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ returnSecureToken: true })
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.idToken) {
+            state.cloudIdToken = data.idToken;
+            state.cloudRefreshToken = data.refreshToken;
+            if (!state.cloudUserUid) state.cloudUserUid = data.localId;
+            saveState(true);
+            return data.idToken;
+          }
+        }
+      } catch (e) {}
+      return '';
+    }
+
     async function pushStateToCloudSilent(showToastOnComplete = false) {
       if (!state.cloudUserEmail) return;
       const payload = getCleanSyncPayload();
       const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const emailKey = sanitizeEmailKey(state.cloudUserEmail);
+      const jsonStr = JSON.stringify(payload);
 
-      // 1. Always save to encrypted account slot + AndroidBridge native persistent preferences
-      try {
-        const acctKey = 'hydropulse_cloud_acct_' + state.cloudUserEmail.toLowerCase();
-        localStorage.setItem(acctKey, JSON.stringify(payload));
-      } catch (e) {}
-
-      // 2. If Firebase API Key & Database URL are configured, sync live to Firebase Realtime Database!
-      if (state.firebaseApiKey && state.firebaseDbUrl && state.cloudUserUid) {
-        try {
-          const token = await refreshFirebaseTokenIfNeeded();
-          const cleanDbUrl = state.firebaseDbUrl.replace(/\/+$/, '');
-          const url = `${cleanDbUrl}/users/${encodeURIComponent(state.cloudUserUid)}/hydropulse.json?auth=${encodeURIComponent(token)}`;
-          const resp = await fetch(url, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          if (resp.ok) {
-            state.cloudLastSyncStr = `Cloud synced at ${nowTime}`;
-            saveState(true);
-            updateCloudModalUI();
-            if (showToastOnComplete) showStatusToast('☁️', 'Backed up to Firebase Cloud!');
-            return;
-          }
-        } catch (e) {}
+      // 1. Save to native Android SharedPreferences via bridge (survives app uninstall/reinstall when backed up!)
+      if (window.AndroidBridge && typeof window.AndroidBridge.saveCloudBackupNative === 'function') {
+        try { window.AndroidBridge.saveCloudBackupNative('backup_' + emailKey, jsonStr); } catch (e) {}
       }
 
-      state.cloudLastSyncStr = `Auto-saved at ${nowTime}`;
+      // 2. Save to local account vault in localStorage
+      try {
+        localStorage.setItem('hydropulse_cloud_acct_' + emailKey, jsonStr);
+      } catch (e) {}
+
+      // 3. Multi-path Cloud Push to Firebase Realtime Database
+      if (state.firebaseDbUrl) {
+        const cleanDbUrl = state.firebaseDbUrl.replace(/\/+$/, '');
+        const token = await ensureFirebaseAuthToken();
+        const authParam = token ? `?auth=${encodeURIComponent(token)}` : '';
+
+        // Write directly to both /users/{emailKey} AND /users/{uid}
+        const candidateUrls = [
+          `${cleanDbUrl}/users/${encodeURIComponent(emailKey)}/hydropulse.json${authParam}`,
+          state.cloudUserUid ? `${cleanDbUrl}/users/${encodeURIComponent(state.cloudUserUid)}/hydropulse.json${authParam}` : null
+        ].filter(Boolean);
+
+        let cloudWriteSuccess = false;
+        for (const url of candidateUrls) {
+          try {
+            const resp = await fetch(url, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: jsonStr
+            });
+            if (resp.ok) {
+              cloudWriteSuccess = true;
+            }
+          } catch (e) {}
+        }
+
+        if (cloudWriteSuccess) {
+          state.cloudLastSyncStr = `Cloud synced at ${nowTime}`;
+          saveState(true);
+          updateCloudModalUI();
+          if (showToastOnComplete) showStatusToast('☁️', 'Backed up to Firebase Cloud!');
+          return;
+        }
+      }
+
+      state.cloudLastSyncStr = `Saved locally at ${nowTime}`;
       saveState(true);
       updateCloudModalUI();
       if (showToastOnComplete) showStatusToast('☁️', 'Account backup updated!');
@@ -1642,33 +1760,54 @@
 
     async function pullStateFromCloud(showToastOnComplete = true) {
       if (!state.cloudUserEmail) return false;
+      const emailKey = sanitizeEmailKey(state.cloudUserEmail);
 
-      // 1. Try Firebase Realtime Database if configured
-      if (state.firebaseApiKey && state.firebaseDbUrl && state.cloudUserUid) {
-        try {
-          const token = await refreshFirebaseTokenIfNeeded();
-          const cleanDbUrl = state.firebaseDbUrl.replace(/\/+$/, '');
-          const url = `${cleanDbUrl}/users/${encodeURIComponent(state.cloudUserUid)}/hydropulse.json?auth=${encodeURIComponent(token)}`;
-          const resp = await fetch(url);
-          if (resp.ok) {
-            const data = await resp.json();
-            if (data && typeof data === 'object' && data.age) {
-              applyCloudPayloadToState(data);
-              const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-              state.cloudLastSyncStr = `Restored at ${nowTime}`;
-              saveState(true);
-              updateCloudModalUI();
-              if (showToastOnComplete) showStatusToast('🎉', 'Restored your data from Cloud!');
-              return true;
+      // 1. Check Firebase Realtime Database across candidate user keys
+      if (state.firebaseDbUrl) {
+        const cleanDbUrl = state.firebaseDbUrl.replace(/\/+$/, '');
+        const token = await ensureFirebaseAuthToken();
+        const authParam = token ? `?auth=${encodeURIComponent(token)}` : '';
+
+        const candidateUrls = [
+          `${cleanDbUrl}/users/${encodeURIComponent(emailKey)}/hydropulse.json${authParam}`,
+          state.cloudUserUid ? `${cleanDbUrl}/users/${encodeURIComponent(state.cloudUserUid)}/hydropulse.json${authParam}` : null
+        ].filter(Boolean);
+
+        for (const url of candidateUrls) {
+          try {
+            const resp = await fetch(url);
+            if (resp.ok) {
+              const data = await resp.json();
+              if (data && typeof data === 'object' && (data.streakDays !== undefined || data.age)) {
+                applyCloudPayloadToState(data);
+                const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                state.cloudLastSyncStr = `Restored from Cloud at ${nowTime}`;
+                saveState(true);
+                updateCloudModalUI();
+                if (showToastOnComplete) showStatusToast('🎉', 'Restored all data & streak from Cloud!');
+                return true;
+              }
             }
+          } catch (e) {}
+        }
+      }
+
+      // 2. Check Android Native SharedPreferences backup
+      if (window.AndroidBridge && typeof window.AndroidBridge.getCloudBackupNative === 'function') {
+        try {
+          const nativeJson = window.AndroidBridge.getCloudBackupNative('backup_' + emailKey);
+          if (nativeJson && nativeJson.length > 20) {
+            const data = JSON.parse(nativeJson);
+            applyCloudPayloadToState(data);
+            if (showToastOnComplete) showStatusToast('🎉', 'Restored from device backup!');
+            return true;
           }
         } catch (e) {}
       }
 
-      // 2. Check local account vault
+      // 3. Check local account vault
       try {
-        const acctKey = 'hydropulse_cloud_acct_' + state.cloudUserEmail.toLowerCase();
-        const raw = localStorage.getItem(acctKey);
+        const raw = localStorage.getItem('hydropulse_cloud_acct_' + emailKey);
         if (raw) {
           const data = JSON.parse(raw);
           applyCloudPayloadToState(data);
@@ -2153,18 +2292,9 @@
       } catch (e) {}
     }
 
+    // In-app alarm sound is disabled per user request (Android outer notification handles sound & vibration!)
     function playBackgroundWavAlarm() {
-      try {
-        if (!alarmWavUri) alarmWavUri = generateToneWavDataUri(true);
-        const alarmAudio = document.getElementById('bgAlarmAudio');
-        if (alarmAudio) {
-          alarmAudio.src = alarmWavUri;
-          alarmAudio.currentTime = 0;
-          alarmAudio.volume = 1.0;
-          alarmAudio.play().catch(() => {});
-        }
-        if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 400]);
-      } catch (e) {}
+      return;
     }
 
     function updateAndroidMediaSessionCard(isAlertNow) {
@@ -2881,8 +3011,7 @@
 
     function triggerIntervalReminder() {
       const metrics = calculateWaterMetrics();
-      playReminderChime();
-      playBackgroundWavAlarm();
+      // In-app alarm sound disabled; outer phone notification handles sound & vibration
       updateAndroidMediaSessionCard(true);
 
       const toast = document.getElementById('reminderToast');
@@ -3235,6 +3364,39 @@
       state.tutorialSeen = true;
       saveState();
       closePopupWithBounce('featureTutorialModal', 'featureTutorialCard');
+      setTimeout(checkAndShowWhatsNewOnLaunch, 300);
+    }
+
+    function openWhatsNewModal() {
+      const badge = document.getElementById('whatsNewVersionBadge');
+      if (badge) badge.textContent = CURRENT_APP_VERSION;
+      const listContainer = document.getElementById('whatsNewListContainer');
+      if (listContainer) {
+        listContainer.innerHTML = WHATS_NEW_CHANGELOG.map((item) => `
+          <div class="p-3 rounded-2xl bg-slate-50/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/70 flex items-start gap-2.5">
+            <span class="text-xl leading-none shrink-0 p-1 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400">${item.icon}</span>
+            <div class="min-w-0 flex-1">
+              <div class="font-extrabold text-slate-900 dark:text-white text-xs">${item.title}</div>
+              <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">${item.desc}</p>
+            </div>
+          </div>
+        `).join('');
+      }
+      openPopupWithBounce('whatsNewModal', 'whatsNewCard');
+    }
+
+    function closeWhatsNewModal() {
+      state.lastSeenWhatsNewVersion = CURRENT_APP_VERSION;
+      saveState(true);
+      closePopupWithBounce('whatsNewModal', 'whatsNewCard');
+    }
+
+    function checkAndShowWhatsNewOnLaunch() {
+      if (state.onboardingCompleted && state.lastSeenWhatsNewVersion !== CURRENT_APP_VERSION) {
+        setTimeout(() => {
+          openWhatsNewModal();
+        }, 350);
+      }
     }
 
     // =========================================================================
@@ -3309,6 +3471,8 @@
           showOnboardingStep(1);
         } else if (!state.tutorialSeen) {
           openFeatureTutorial();
+        } else {
+          checkAndShowWhatsNewOnLaunch();
         }
       }, 1700);
 
@@ -3477,7 +3641,10 @@
         });
       });
 
-      ['streakPopupModal', 'reminderPopupModal', 'weatherPopupModal', 'formulaModal'].forEach((mId) => {
+      document.getElementById('closeWhatsNewBtn').addEventListener('click', closeWhatsNewModal);
+      document.getElementById('gotItWhatsNewBtn').addEventListener('click', closeWhatsNewModal);
+
+      ['streakPopupModal', 'reminderPopupModal', 'weatherPopupModal', 'formulaModal', 'whatsNewModal'].forEach((mId) => {
         const mEl = document.getElementById(mId);
         if (mEl) {
           mEl.addEventListener('click', (e) => {
@@ -3521,6 +3688,11 @@
       document.getElementById('openAboutFromSettingsBtn').addEventListener('click', () => {
         closeSettingsDrawer();
         setTimeout(() => openPopupWithBounce('formulaModal', 'formulaPopupCard'), 200);
+      });
+
+      document.getElementById('openWhatsNewFromSettingsBtn').addEventListener('click', () => {
+        closeSettingsDrawer();
+        setTimeout(openWhatsNewModal, 200);
       });
 
       // Share with Friends & Rate the App -> "Available soon"
@@ -3887,19 +4059,17 @@
         try {
           state.cloudUserEmail = email;
           state.cloudUserUid = 'google_' + btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
-          const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          state.cloudLastSyncStr = `Google synced at ${nowTime}`;
           saveState(true);
 
-          const restored = await pullStateFromCloud(false);
+          // PULL CLOUD DATA FIRST! If prior streak/logs exist on Firebase, restore them immediately!
+          const restored = await pullStateFromCloud(true);
           if (!restored) {
+            // Only push local state if no remote cloud data was found
             await pushStateToCloudSilent(false);
           }
 
-          if (!state.onboardingCompleted) {
-            state.onboardingCompleted = true;
-            document.getElementById('onboardingOverlay').classList.add('hidden');
-          }
+          state.onboardingCompleted = true;
+          document.getElementById('onboardingOverlay').classList.add('hidden');
 
           closeGoogleDialog();
           updateCloudModalUI();
