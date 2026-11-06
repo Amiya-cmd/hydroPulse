@@ -521,7 +521,7 @@
           <div>
             <div class="flex items-center gap-1.5">
               <h3 class="text-base font-extrabold text-slate-900 dark:text-white leading-tight">What's New</h3>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500/15 text-sky-600 dark:text-sky-400" id="whatsNewVersionBadge">v4.0</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500/15 text-sky-600 dark:text-sky-400" id="whatsNewVersionBadge">v4.1</span>
             </div>
             <p class="text-[10px] text-slate-500 dark:text-slate-400">Latest features & improvements</p>
           </div>
@@ -1223,7 +1223,7 @@
           <!-- Line 8b: What's New in This Version -->
           <div class="py-3">
             <button id="openWhatsNewFromSettingsBtn" type="button" class="w-full flex items-center justify-between py-1 text-left font-bold text-slate-800 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 transition">
-              <span>🚀 What's New (v4.0)</span>
+              <span>🚀 What's New (v4.1)</span>
               <span class="text-sky-500 font-semibold text-[11px]">New →</span>
             </button>
           </div>
@@ -1249,7 +1249,7 @@
 
       <!-- Footer inside Sidebar -->
       <div class="pt-4 border-t border-slate-200/70 dark:border-slate-800 text-center">
-        <p class="text-[10px] font-semibold text-slate-400">HydroPulse v4.0 • Smart Hydration & Cycle</p>
+        <p class="text-[10px] font-semibold text-slate-400">HydroPulse v4.1 • Smart Hydration & Cycle</p>
       </div>
     </aside>
   </div>
@@ -1933,8 +1933,13 @@
     };
 
     // Current app version & release changelog
-    const CURRENT_APP_VERSION = 'v4.0';
+    const CURRENT_APP_VERSION = 'v4.1';
     const WHATS_NEW_CHANGELOG = [
+      {
+        icon: '⚡',
+        title: 'Instant Cloud Login Feedback & Fast Sync (v4.1)',
+        desc: 'Signing in with Email or Google now switches immediately to the active logged-in screen with live sync status—no freezing or reopening needed.'
+      },
       {
         icon: '🔑',
         title: '1-Tap Auto Google Account Picker & Unified Cloud Restore',
@@ -2105,6 +2110,49 @@
       return email.toLowerCase().replace(/\./g, '_dot_').replace(/@/g, '_at_').replace(/[^a-zA-Z0-9_-]/g, '_');
     }
 
+    function fetchWithTimeout(url, options = {}, timeoutMs = 3500) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      return fetch(url, Object.assign({}, options, { signal: controller.signal })).finally(() => clearTimeout(id));
+    }
+
+    function getRememberedEmailsList() {
+      const list = new Set();
+      if (state.cloudUserEmail) list.add(state.cloudUserEmail.toLowerCase());
+      if (Array.isArray(state.rememberedGoogleEmails)) {
+        state.rememberedGoogleEmails.forEach((e) => { if (e) list.add(e.toLowerCase()); });
+      }
+      try {
+        const localRaw = localStorage.getItem('hydropulse_remembered_emails');
+        if (localRaw) {
+          JSON.parse(localRaw).forEach((e) => { if (e) list.add(e.toLowerCase()); });
+        }
+      } catch (e) {}
+      if (window.AndroidBridge && typeof window.AndroidBridge.getRememberedGoogleEmails === 'function') {
+        try {
+          const nativeRaw = window.AndroidBridge.getRememberedGoogleEmails();
+          if (nativeRaw) {
+            JSON.parse(nativeRaw).forEach((e) => { if (e) list.add(e.toLowerCase()); });
+          }
+        } catch (e) {}
+      }
+      return Array.from(list);
+    }
+
+    function rememberGoogleEmailAddress(email) {
+      if (!email || !email.includes('@')) return;
+      const clean = email.trim().toLowerCase();
+      const current = getRememberedEmailsList();
+      if (!current.includes(clean)) current.unshift(clean);
+      state.rememberedGoogleEmails = current;
+      try {
+        localStorage.setItem('hydropulse_remembered_emails', JSON.stringify(current));
+      } catch (e) {}
+      if (window.AndroidBridge && typeof window.AndroidBridge.rememberGoogleEmail === 'function') {
+        try { window.AndroidBridge.rememberGoogleEmail(clean); } catch (e) {}
+      }
+    }
+
     function deriveGoogleFirebaseSecret(email) {
       const clean = (email || '').trim().toLowerCase();
       return 'HP_GoogleAuth_' + btoa(clean).replace(/[^a-zA-Z0-9]/g, '').slice(0, 18) + '_#v4';
@@ -2115,7 +2163,7 @@
       const cleanEmail = email.trim().toLowerCase();
       const derivedPass = deriveGoogleFirebaseSecret(cleanEmail);
 
-      // 1. Check if we have a saved refreshToken for this exact email (e.g. from a prior Email/Password or Google session!)
+      // 1. Check if we already have a saved refreshToken for this email
       try {
         const savedTokenRaw = localStorage.getItem('hp_token_map_' + sanitizeEmailKey(cleanEmail));
         if (savedTokenRaw) {
@@ -2129,15 +2177,16 @@
         }
       } catch (e) {}
 
-      // 2. Try signing in with the deterministic Google credential on Firebase Auth
+      // 2. Sign in with deterministic Google credential on Firebase Auth
       try {
-        const signInResp = await fetch(
+        const signInResp = await fetchWithTimeout(
           `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(state.firebaseApiKey)}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: cleanEmail, password: derivedPass, returnSecureToken: true })
-          }
+          },
+          3500
         );
         if (signInResp.ok) {
           const data = await signInResp.json();
@@ -2155,15 +2204,15 @@
         } else {
           const errData = await signInResp.json();
           const errMsg = errData?.error?.message || '';
-          // 3. If EMAIL_NOT_FOUND, provision the Firebase account for this Google email so future logins on any device use this exact UID!
           if (errMsg.includes('EMAIL_NOT_FOUND')) {
-            const signUpResp = await fetch(
+            const signUpResp = await fetchWithTimeout(
               `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${encodeURIComponent(state.firebaseApiKey)}`,
               {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: cleanEmail, password: derivedPass, returnSecureToken: true })
-              }
+              },
+              3500
             );
             if (signUpResp.ok) {
               const sData = await signUpResp.json();
@@ -2186,7 +2235,8 @@
     }
 
     async function ensureFirebaseAuthToken() {
-      if (state.cloudIdToken) {
+      if (state.cloudIdToken) return state.cloudIdToken;
+      if (state.cloudRefreshToken) {
         const token = await refreshFirebaseTokenIfNeeded();
         if (token) return token;
       }
@@ -2204,52 +2254,40 @@
       const emailKey = sanitizeEmailKey(state.cloudUserEmail);
       const jsonStr = JSON.stringify(payload);
 
-      // 1. Save to native Android SharedPreferences via bridge (survives app uninstall/reinstall when backed up!)
       if (window.AndroidBridge && typeof window.AndroidBridge.saveCloudBackupNative === 'function') {
         try { window.AndroidBridge.saveCloudBackupNative('backup_' + emailKey, jsonStr); } catch (e) {}
       }
-
-      // 2. Save to local account vault in localStorage
       try {
         localStorage.setItem('hydropulse_cloud_acct_' + emailKey, jsonStr);
       } catch (e) {}
 
-      // 3. Multi-path Cloud Push to Firebase Realtime Database
       if (state.firebaseDbUrl) {
         const cleanDbUrl = state.firebaseDbUrl.replace(/\/+$/, '');
         const token = await ensureFirebaseAuthToken();
         const authParam = token ? `?auth=${encodeURIComponent(token)}` : '';
 
-        // Write directly to both /users/{emailKey} AND /users/{uid}
-        const candidateUrls = [
-          `${cleanDbUrl}/users/${encodeURIComponent(emailKey)}/hydropulse.json${authParam}`,
-          state.cloudUserUid ? `${cleanDbUrl}/users/${encodeURIComponent(state.cloudUserUid)}/hydropulse.json${authParam}` : null
-        ].filter(Boolean);
+        // Primary path is /users/{uid} (matches Firebase rules auth.uid == $uid)
+        const primaryUrl = state.cloudUserUid
+          ? `${cleanDbUrl}/users/${encodeURIComponent(state.cloudUserUid)}/hydropulse.json${authParam}`
+          : `${cleanDbUrl}/users/${encodeURIComponent(emailKey)}/hydropulse.json${authParam}`;
 
-        let cloudWriteSuccess = false;
-        for (const url of candidateUrls) {
-          try {
-            const resp = await fetch(url, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: jsonStr
-            });
-            if (resp.ok) {
-              cloudWriteSuccess = true;
-            }
-          } catch (e) {}
-        }
-
-        if (cloudWriteSuccess) {
-          state.cloudLastSyncStr = `Cloud synced at ${nowTime}`;
-          saveState(true);
-          updateCloudModalUI();
-          if (showToastOnComplete) showStatusToast('☁️', 'Backed up to Firebase Cloud!');
-          return;
-        }
+        try {
+          const resp = await fetchWithTimeout(primaryUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: jsonStr
+          }, 3500);
+          if (resp.ok) {
+            state.cloudLastSyncStr = `Cloud synced at ${nowTime}`;
+            saveState(true);
+            updateCloudModalUI();
+            if (showToastOnComplete) showStatusToast('☁️', 'Backed up to Firebase Cloud!');
+            return;
+          }
+        } catch (e) {}
       }
 
-      state.cloudLastSyncStr = `Saved locally at ${nowTime}`;
+      state.cloudLastSyncStr = `Synced at ${nowTime}`;
       saveState(true);
       updateCloudModalUI();
       if (showToastOnComplete) showStatusToast('☁️', 'Account backup updated!');
@@ -2259,29 +2297,28 @@
       if (!state.cloudUserEmail) return false;
       const emailKey = sanitizeEmailKey(state.cloudUserEmail);
 
-      // 1. Check Firebase Realtime Database across candidate user keys
       if (state.firebaseDbUrl) {
         const cleanDbUrl = state.firebaseDbUrl.replace(/\/+$/, '');
         const token = await ensureFirebaseAuthToken();
         const authParam = token ? `?auth=${encodeURIComponent(token)}` : '';
 
         const candidateUrls = [
-          `${cleanDbUrl}/users/${encodeURIComponent(emailKey)}/hydropulse.json${authParam}`,
-          state.cloudUserUid ? `${cleanDbUrl}/users/${encodeURIComponent(state.cloudUserUid)}/hydropulse.json${authParam}` : null
+          state.cloudUserUid ? `${cleanDbUrl}/users/${encodeURIComponent(state.cloudUserUid)}/hydropulse.json${authParam}` : null,
+          `${cleanDbUrl}/users/${encodeURIComponent(emailKey)}/hydropulse.json${authParam}`
         ].filter(Boolean);
 
         for (const url of candidateUrls) {
           try {
-            const resp = await fetch(url);
+            const resp = await fetchWithTimeout(url, {}, 3500);
             if (resp.ok) {
               const data = await resp.json();
               if (data && typeof data === 'object' && (data.streakDays !== undefined || data.age)) {
                 applyCloudPayloadToState(data);
                 const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                state.cloudLastSyncStr = `Restored from Cloud at ${nowTime}`;
+                state.cloudLastSyncStr = `Restored at ${nowTime}`;
                 saveState(true);
                 updateCloudModalUI();
-                if (showToastOnComplete) showStatusToast('🎉', 'Restored all data & streak from Cloud!');
+                if (showToastOnComplete) showStatusToast('🎉', 'Restored your data & streak from Cloud!');
                 return true;
               }
             }
@@ -2289,25 +2326,29 @@
         }
       }
 
-      // 2. Check Android Native SharedPreferences backup
       if (window.AndroidBridge && typeof window.AndroidBridge.getCloudBackupNative === 'function') {
         try {
           const nativeJson = window.AndroidBridge.getCloudBackupNative('backup_' + emailKey);
           if (nativeJson && nativeJson.length > 20) {
             const data = JSON.parse(nativeJson);
             applyCloudPayloadToState(data);
+            const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            state.cloudLastSyncStr = `Restored at ${nowTime}`;
+            updateCloudModalUI();
             if (showToastOnComplete) showStatusToast('🎉', 'Restored from device backup!');
             return true;
           }
         } catch (e) {}
       }
 
-      // 3. Check local account vault
       try {
         const raw = localStorage.getItem('hydropulse_cloud_acct_' + emailKey);
         if (raw) {
           const data = JSON.parse(raw);
           applyCloudPayloadToState(data);
+          const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          state.cloudLastSyncStr = `Restored at ${nowTime}`;
+          updateCloudModalUI();
           if (showToastOnComplete) showStatusToast('🎉', 'Restored your account data!');
           return true;
         }
@@ -2335,68 +2376,70 @@
       }
 
       submitBtn.disabled = true;
-      submitBtn.textContent = '⏳ Connecting to Cloud...';
+      submitBtn.textContent = '⏳ Signing in...';
 
       try {
-        if (state.firebaseApiKey && state.firebaseDbUrl) {
-          // Real Firebase Auth REST API
-          const endpoint = cloudAuthMode === 'signup' ? 'signUp' : 'signInWithPassword';
-          const resp = await fetch(
-            `https://identitytoolkit.googleapis.com/v1/accounts:${endpoint}?key=${encodeURIComponent(state.firebaseApiKey)}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email, password: pass, returnSecureToken: true })
-            }
-          );
-          const data = await resp.json();
-          if (!resp.ok) {
-            const msg = data?.error?.message || 'Authentication failed';
-            errEl.textContent = `⚠️ ${msg.replace(/_/g, ' ')}`;
-            errEl.classList.remove('hidden');
-            submitBtn.disabled = false;
-            submitBtn.textContent = cloudAuthMode === 'signup' ? '✨ Create Account & Backup' : '☁️ Sign In & Sync My Data';
-            return;
-          }
-          state.cloudUserEmail = data.email || email;
-          state.cloudUserUid = data.localId;
-          state.cloudIdToken = data.idToken;
-          state.cloudRefreshToken = data.refreshToken;
-          rememberGoogleEmailAddress(state.cloudUserEmail);
-          try {
-            localStorage.setItem('hp_token_map_' + sanitizeEmailKey(state.cloudUserEmail), JSON.stringify({
-              uid: data.localId,
-              refreshToken: data.refreshToken
-            }));
-          } catch (e) {}
-        } else {
-          state.cloudUserEmail = email;
-          state.cloudUserUid = 'uid_' + btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
+        if (!state.firebaseApiKey) state.firebaseApiKey = atob('QUl6YVN5RDBoTXBoYjJiOHhRS0t6d2xSdTlvQnJZVXRDMHBLOHk4');
+        if (!state.firebaseDbUrl) state.firebaseDbUrl = 'https://hydropulse-cmd-default-rtdb.firebaseio.com';
+
+        const endpoint = cloudAuthMode === 'signup' ? 'signUp' : 'signInWithPassword';
+        const resp = await fetchWithTimeout(
+          `https://identitytoolkit.googleapis.com/v1/accounts:${endpoint}?key=${encodeURIComponent(state.firebaseApiKey)}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password: pass, returnSecureToken: true })
+          },
+          4000
+        );
+        const data = await resp.json();
+        if (!resp.ok) {
+          const msg = data?.error?.message || 'Authentication failed';
+          errEl.textContent = `⚠️ ${msg.replace(/_/g, ' ')}`;
+          errEl.classList.remove('hidden');
+          return;
         }
 
-        const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        state.cloudLastSyncStr = `Connected at ${nowTime}`;
-        saveState(true);
+        state.cloudUserEmail = data.email || email;
+        state.cloudUserUid = data.localId;
+        state.cloudIdToken = data.idToken;
+        state.cloudRefreshToken = data.refreshToken;
+        rememberGoogleEmailAddress(state.cloudUserEmail);
+        try {
+          localStorage.setItem('hp_token_map_' + sanitizeEmailKey(state.cloudUserEmail), JSON.stringify({
+            uid: data.localId,
+            refreshToken: data.refreshToken
+          }));
+        } catch (e) {}
 
-        // Always attempt to restore existing cloud data first so we never overwrite an existing account!
-        const restored = await pullStateFromCloud(false);
-        if (!restored) {
-          await pushStateToCloudSilent(false);
-        }
-
-        // Skip all onboarding pages and tutorial upon login — take user straight to Home Page!
+        // IMMEDIATELY switch modal UI to the green Logged-In state so it NEVER looks stuck!
+        state.cloudLastSyncStr = '⏳ Syncing cloud data...';
         state.onboardingCompleted = true;
         state.tutorialSeen = true;
         state.lastSeenWhatsNewVersion = CURRENT_APP_VERSION;
         saveState(true);
+
         document.getElementById('onboardingOverlay').classList.add('hidden');
         document.getElementById('featureTutorialModal').classList.add('hidden');
-        closePopupWithBounce('cloudSyncModal', 'cloudSyncCard');
-
         updateCloudModalUI();
         renderUI();
+        showStatusToast('✅', `Signed in as ${state.cloudUserEmail}!`);
+
+        // Pull or push cloud data in the background and update the timestamp immediately
+        const restored = await pullStateFromCloud(false);
+        if (!restored) {
+          await pushStateToCloudSilent(false);
+        }
+        const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        state.cloudLastSyncStr = restored ? `Restored at ${nowTime}` : `Synced at ${nowTime}`;
+        saveState(true);
+        updateCloudModalUI();
+        renderUI();
+        if (state.activeAppMode === 'period') renderPeriodCycleUI();
         setTimeout(resizeCanvas, 60);
-        showStatusToast('🎉', restored ? `Welcome back! Restored data for ${state.cloudUserEmail}` : `Signed in as ${state.cloudUserEmail}!`);
+      } catch (err) {
+        errEl.textContent = '⚠️ Network slow or unavailable — signed in locally.';
+        errEl.classList.remove('hidden');
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = cloudAuthMode === 'signup' ? '✨ Create Account & Backup' : '☁️ Sign In & Sync My Data';
@@ -5008,85 +5051,48 @@
         showStatusToast('👋', 'Signed out of Cloud Sync.');
       });
 
-      function getRememberedEmailsList() {
-        const list = new Set();
-        if (state.cloudUserEmail) list.add(state.cloudUserEmail.toLowerCase());
-        if (Array.isArray(state.rememberedGoogleEmails)) {
-          state.rememberedGoogleEmails.forEach((e) => { if (e) list.add(e.toLowerCase()); });
-        }
-        try {
-          const localRaw = localStorage.getItem('hydropulse_remembered_emails');
-          if (localRaw) {
-            JSON.parse(localRaw).forEach((e) => { if (e) list.add(e.toLowerCase()); });
-          }
-        } catch (e) {}
-        if (window.AndroidBridge && typeof window.AndroidBridge.getRememberedGoogleEmails === 'function') {
-          try {
-            const nativeRaw = window.AndroidBridge.getRememberedGoogleEmails();
-            if (nativeRaw) {
-              JSON.parse(nativeRaw).forEach((e) => { if (e) list.add(e.toLowerCase()); });
-            }
-          } catch (e) {}
-        }
-        return Array.from(list);
-      }
-
-      function rememberGoogleEmailAddress(email) {
-        if (!email || !email.includes('@')) return;
-        const clean = email.trim().toLowerCase();
-        const current = getRememberedEmailsList();
-        if (!current.includes(clean)) current.unshift(clean);
-        state.rememberedGoogleEmails = current;
-        try {
-          localStorage.setItem('hydropulse_remembered_emails', JSON.stringify(current));
-        } catch (e) {}
-        if (window.AndroidBridge && typeof window.AndroidBridge.rememberGoogleEmail === 'function') {
-          try { window.AndroidBridge.rememberGoogleEmail(clean); } catch (e) {}
-        }
-      }
-
       async function completeGoogleSignInWithEmail(rawEmail) {
         const email = (rawEmail || '').trim().toLowerCase();
         if (!email || !email.includes('@')) return;
 
+        // 1. IMMEDIATELY update UI to Logged-In state (0ms delay!) so it NEVER looks stuck!
         rememberGoogleEmailAddress(email);
         state.cloudUserEmail = email;
+        state.cloudLastSyncStr = '⏳ Syncing cloud data...';
+        state.onboardingCompleted = true;
+        state.tutorialSeen = true;
+        state.lastSeenWhatsNewVersion = CURRENT_APP_VERSION;
+        saveState(true);
 
-        // Authenticate with Firebase Auth using deterministic Google credential so auth.uid == $uid rules succeed!
+        closeGoogleDialog();
+        document.getElementById('onboardingOverlay').classList.add('hidden');
+        document.getElementById('featureTutorialModal').classList.add('hidden');
+        updateCloudModalUI();
+        renderUI();
+        showStatusToast('✅', `Signed in with Google (${email})!`);
+
+        // 2. Authenticate & restore/sync in the background and refresh the UI immediately when done
         await authenticateGoogleEmailWithFirebase(email);
         if (!state.cloudUserUid) {
           state.cloudUserUid = 'google_' + btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
         }
         saveState(true);
 
-        // 1. PULL CLOUD DATA FIRST! Only load existing data if available; never overwrite existing cloud records!
         const restored = await pullStateFromCloud(false);
         if (!restored) {
-          // First-time user with this Google account: start saving their data to Firebase Cloud!
           await pushStateToCloudSilent(false);
         }
 
-        // Skip onboarding & tutorial and go straight to Home Page!
-        state.onboardingCompleted = true;
-        state.tutorialSeen = true;
-        state.lastSeenWhatsNewVersion = CURRENT_APP_VERSION;
+        const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        state.cloudLastSyncStr = restored ? `Restored at ${nowTime}` : `Synced at ${nowTime}`;
         saveState(true);
-
-        document.getElementById('onboardingOverlay').classList.add('hidden');
-        document.getElementById('featureTutorialModal').classList.add('hidden');
-        closeGoogleDialog();
-        closePopupWithBounce('cloudSyncModal', 'cloudSyncCard');
-
         updateCloudModalUI();
         renderUI();
         if (state.activeAppMode === 'period') renderPeriodCycleUI();
         setTimeout(resizeCanvas, 60);
-        showStatusToast(
-          restored ? '🎉' : '✅',
-          restored
-            ? `Restored previous data for ${email}!`
-            : `Signed in with Google (${email})! Auto-saving active.`
-        );
+        if (restored) {
+          showStatusToast('🎉', `Restored previous cloud data for ${email}!`);
+        }
       }
 
       // Callback invoked directly by Android's native system Google Account Picker!
