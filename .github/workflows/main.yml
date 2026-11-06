@@ -1,94 +1,53 @@
-name: Build Native HydroPulse APK
-
-
+name: Build Android APK & Deploy iOS App
 
 on:
-
   push:
-
     branches: [ "main", "master" ]
-
   workflow_dispatch:
 
-
-
 permissions:
-
   contents: write
 
-
-
 jobs:
-
   build-apk:
-
     runs-on: ubuntu-latest
-
     steps:
-
       - name: Checkout repository
-
         uses: actions/checkout@v4
 
-
-
       - name: Set up JDK 17
-
         uses: actions/setup-java@v4
-
         with:
-
           java-version: '17'
-
           distribution: 'temurin'
 
-
-
       - name: Setup Gradle
-
         uses: gradle/actions/setup-gradle@v3
-
         with:
-
           gradle-version: '8.4'
 
-
-
-      - name: Build Debug APK (Auto-Signed & Ready to Install)
-
+      - name: Build Signed HydroPulse v4.1 APK
         run: |
-
           gradle assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk HydroPulse-v4.1.apk
 
-          cp app/build/outputs/apk/debug/app-debug.apk HydroPulse.apk
-
-
-
-      - name: Upload Compiled HydroPulse APK Artifact
-
+      - name: Upload Compiled HydroPulse v4.1 APK Artifact
         uses: actions/upload-artifact@v4
-
         with:
+          name: HydroPulse-v4.1-Android-APK
+          path: HydroPulse-v4.1.apk
 
-          name: HydroPulse-Native-Android-APK
-
-          path: HydroPulse.apk
-
-
-
-      - name: Automatically Publish HydroPulse.apk to GitHub Releases
-
+      - name: Automatically Publish HydroPulse-v4.1.apk to GitHub Releases
         uses: softprops/action-gh-release@v2
-
         with:
-
-          tag_name: latest
-
-          name: HydroPulse for Android (Latest Official APK)
-
-          body: "Download **HydroPulse.apk** below under Assets to install on your Android phone."
-
-          files: HydroPulse.apk
-
+          tag_name: v4.1
+          name: HydroPulse v4.1 for Android & iOS
+          body: "📱 **Android Users:** Download **HydroPulse-v4.1.apk** below under Assets.\n🍎 **iPhone / iOS Users:** Open **https://amiya-cmd.github.io/hydroPulse/** in Safari -> tap **Share** -> **Add to Home Screen**!"
+          files: HydroPulse-v4.1.apk
           prerelease: false
 
+      - name: Deploy iOS Progressive Web App to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./app/src/main/assets
