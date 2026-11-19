@@ -117,6 +117,19 @@
     .animate-mode-page {
       animation: modePageTransition 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
+    .glass-widget-surface {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.72) 0%, rgba(240, 249, 255, 0.52) 100%);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1.5px solid rgba(255, 255, 255, 0.75);
+      box-shadow: 0 20px 40px -15px rgba(2, 132, 199, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+      transition: width 0.38s cubic-bezier(0.22, 1, 0.36, 1), height 0.38s cubic-bezier(0.22, 1, 0.36, 1), border-radius 0.38s ease;
+    }
+    .dark .glass-widget-surface {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.72) 0%, rgba(30, 41, 59, 0.56) 100%);
+      border: 1.5px solid rgba(56, 189, 248, 0.32);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+    }
     /* Scrollable drum wheel styling */
     .wheel-scroll {
       scroll-snap-type: y mandatory;
@@ -516,6 +529,144 @@
   </div>
 
   <!-- ===================================================================== -->
+  <!-- 2.35 GLASSY INTERACTIVE WIDGET STUDIO (Android & iOS • 4 Dimensions)  -->
+  <!-- ===================================================================== -->
+  <div id="widgetStudioModal" class="fixed inset-0 z-[73] bg-slate-950/45 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div id="widgetStudioCard" class="bg-white/85 dark:bg-slate-900/85 backdrop-blur-2xl border border-white/50 dark:border-slate-700/80 rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-5 shadow-2xl bounce-in space-y-4 my-auto">
+
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📱</span>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h3 class="text-base font-extrabold text-slate-900 dark:text-white leading-tight">Glassy Hydration Widget</h3>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500/15 text-sky-600 dark:text-sky-400">Android & iOS</span>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Auto Light/Dark • 60FPS Smooth Wave Meter</p>
+          </div>
+        </div>
+        <button id="closeWidgetStudioBtn" type="button" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center font-bold text-sm transition">
+          ✕
+        </button>
+      </div>
+
+      <!-- Dimension Selector Pills: 2x2 | 3x3 | 4x4 | Vertical 3 x Horizontal 2 -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 px-0.5">
+          <span>Select Widget Dimension</span>
+          <span id="widgetDimDescLabel" class="text-sky-600 dark:text-sky-400 font-extrabold">2×2 Compact Square</span>
+        </div>
+        <div class="grid grid-cols-4 gap-1.5 bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700">
+          <button type="button" data-widget-dim="2x2" class="widget-dim-btn py-2 px-1.5 rounded-xl text-xs font-extrabold bg-sky-600 text-white shadow-sm transition">
+            2×2
+          </button>
+          <button type="button" data-widget-dim="3x3" class="widget-dim-btn py-2 px-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 transition">
+            3×3
+          </button>
+          <button type="button" data-widget-dim="4x4" class="widget-dim-btn py-2 px-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 transition">
+            4×4
+          </button>
+          <button type="button" data-widget-dim="3x2v" class="widget-dim-btn py-2 px-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 transition" title="Vertical 3 × Horizontal 2">
+            3×2 Vert
+          </button>
+        </div>
+      </div>
+
+      <!-- Interactive Glassy Widget Stage (Ambient Wallpaper Backdrop + Resizable Glass Widget) -->
+      <div class="relative rounded-3xl p-4 sm:p-5 bg-gradient-to-br from-sky-400/25 via-indigo-500/15 to-emerald-400/25 dark:from-sky-900/40 dark:via-slate-900/80 dark:to-indigo-950/50 border border-sky-300/40 dark:border-sky-800/40 flex items-center justify-center min-h-[290px] overflow-hidden">
+        <!-- Decorative Ambient Orbs Behind Glass Widget to Showcase Glassy Transparency -->
+        <div class="absolute -top-6 -left-6 w-28 h-28 rounded-full bg-sky-400/35 blur-2xl pointer-events-none"></div>
+        <div class="absolute -bottom-6 -right-6 w-32 h-32 rounded-full bg-blue-500/30 blur-2xl pointer-events-none"></div>
+
+        <!-- THE INTERACTIVE GLASSY WIDGET CONTAINER -->
+        <div id="liveGlassyWidgetBox" class="glass-widget-surface relative overflow-hidden rounded-[28px] flex flex-col justify-between p-4 select-none gpu-smooth" style="width: 190px; height: 190px;">
+          <!-- Smooth 60FPS Animated Water Wave Canvas Inside Widget -->
+          <canvas id="interactiveWidgetWaveCanvas" class="absolute inset-0 w-full h-full pointer-events-none gpu-smooth"></canvas>
+
+          <!-- Widget Top Header Bar -->
+          <div class="relative z-10 flex items-center justify-between gap-1">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="w-5 h-5 rounded-lg bg-sky-500/25 border border-sky-400/40 flex items-center justify-center text-xs shrink-0">💧</span>
+              <span id="widgetHeaderTitle" class="text-[10px] font-extrabold uppercase tracking-wider text-sky-700 dark:text-sky-300 truncate">HydroPulse</span>
+            </div>
+            <span id="widgetStreakPill" class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 shrink-0">
+              🔥 <span id="widgetStreakNum">0</span>d
+            </span>
+          </div>
+
+          <!-- Widget Center Consumption Meter & Requirement Info -->
+          <div class="relative z-10 text-center my-auto py-1 space-y-0.5">
+            <div id="widgetPercentBig" class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white drop-shadow-sm leading-none">
+              0%
+            </div>
+            <div class="text-xs font-extrabold text-slate-800 dark:text-slate-100">
+              <span id="widgetCurrentMlText">0</span> <span class="text-[10px] font-bold opacity-75">/ <span id="widgetTargetMlText">3050</span> ml</span>
+            </div>
+            <p id="widgetRemainingSubtext" class="text-[10px] font-semibold text-slate-600 dark:text-slate-300">
+              3,050 ml left today
+            </p>
+
+            <!-- Extra Stats Row (Shown in 3x3, 4x4, and 3x2 Vertical dimensions) -->
+            <div id="widgetExtendedStatsRow" class="hidden pt-1.5 flex items-center justify-center gap-1.5 flex-wrap">
+              <span class="px-2 py-0.5 rounded-lg bg-white/55 dark:bg-slate-800/65 text-[9px] font-bold text-slate-700 dark:text-slate-200 border border-white/40 dark:border-slate-700">
+                ⏱️ Next: <span id="widgetNextTimerText">30:00</span>
+              </span>
+              <span id="widgetWeatherChip" class="hidden px-2 py-0.5 rounded-lg bg-white/55 dark:bg-slate-800/65 text-[9px] font-bold text-slate-700 dark:text-slate-200 border border-white/40 dark:border-slate-700">
+                ☀️ <span id="widgetTempText">31°C</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Widget Bottom Action Bar: 1-Tap "+Add Sip" + Extra Presets in 4x4 -->
+          <div class="relative z-10 space-y-1.5">
+            <div id="widget4x4QuickRow" class="hidden grid grid-cols-3 gap-1">
+              <button type="button" data-widget-quick-ml="100" class="widget-quick-ml-btn py-1 rounded-lg bg-white/65 dark:bg-slate-800/75 hover:bg-white text-[10px] font-extrabold text-slate-800 dark:text-white border border-white/50 dark:border-slate-700 active:scale-95 transition">+100</button>
+              <button type="button" data-widget-quick-ml="200" class="widget-quick-ml-btn py-1 rounded-lg bg-white/65 dark:bg-slate-800/75 hover:bg-white text-[10px] font-extrabold text-slate-800 dark:text-white border border-white/50 dark:border-slate-700 active:scale-95 transition">+200</button>
+              <button type="button" data-widget-quick-ml="500" class="widget-quick-ml-btn py-1 rounded-lg bg-white/65 dark:bg-slate-800/75 hover:bg-white text-[10px] font-extrabold text-slate-800 dark:text-white border border-white/50 dark:border-slate-700 active:scale-95 transition">+500</button>
+            </div>
+            <button id="widgetAddSipMainBtn" type="button" class="w-full py-2 px-3 rounded-2xl bg-sky-600/95 hover:bg-sky-500 active:scale-95 text-white font-extrabold text-xs shadow-lg shadow-sky-600/30 border border-sky-400/40 flex items-center justify-center gap-1 transition">
+              <span>💧</span>
+              <span id="widgetAddSipBtnLabel">+Sip 110 ml</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pin Widget to App Home Screen Toggle + Native Android / iOS Instructions -->
+      <div class="space-y-2.5 text-xs">
+        <div class="p-3 rounded-2xl bg-slate-50/90 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
+          <div>
+            <div class="font-extrabold text-slate-900 dark:text-white">📌 Show Glass Widget on App Home</div>
+            <div class="text-[10px] text-slate-500 dark:text-slate-400">Pins your selected widget size to the top of the home screen</div>
+          </div>
+          <button id="togglePinWidgetHomeBtn" type="button" class="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 transition">
+            OFF
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div class="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/25 space-y-1">
+            <div class="font-extrabold text-sky-700 dark:text-sky-300 text-[11px]">🤖 Android Home Screen</div>
+            <p class="text-[10px] text-slate-600 dark:text-slate-300 leading-relaxed">
+              Long-press your phone's Home Screen → tap <strong>Widgets</strong> → drag <strong>HydroPulse Water Widget</strong> out and resize to <strong>2×2, 3×3, 4×4, or 3×2</strong>!
+            </p>
+          </div>
+          <div class="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 space-y-1.5">
+            <div class="font-extrabold text-indigo-700 dark:text-indigo-300 text-[11px]">🍎 iOS / iPhone Widget</div>
+            <p class="text-[10px] text-slate-600 dark:text-slate-300 leading-relaxed">
+              Add to iPhone Home Screen via Safari, or copy the iOS Scriptable widget script:
+            </p>
+            <button id="copyIosWidgetScriptBtn" type="button" class="w-full py-1 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] active:scale-95 transition">
+              📋 Copy iOS Widget Script
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
   <!-- 2.4 iOS / IPHONE "ADD TO HOME SCREEN" INSTALL GUIDE POP-UP            -->
   <!-- ===================================================================== -->
   <div id="iosInstallModal" class="fixed inset-0 z-[74] bg-slate-950/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
@@ -565,7 +716,7 @@
           <div>
             <div class="flex items-center gap-1.5">
               <h3 class="text-base font-extrabold text-slate-900 dark:text-white leading-tight">What's New</h3>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500/15 text-sky-600 dark:text-sky-400" id="whatsNewVersionBadge">v4.1</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500/15 text-sky-600 dark:text-sky-400" id="whatsNewVersionBadge">v4.2</span>
             </div>
             <p class="text-[10px] text-slate-500 dark:text-slate-400">Latest features & improvements</p>
           </div>
@@ -1267,8 +1418,16 @@
           <!-- Line 8b: What's New in This Version -->
           <div class="py-3">
             <button id="openWhatsNewFromSettingsBtn" type="button" class="w-full flex items-center justify-between py-1 text-left font-bold text-slate-800 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 transition">
-              <span>🚀 What's New (v4.1)</span>
+              <span>🚀 What's New (v4.2)</span>
               <span class="text-sky-500 font-semibold text-[11px]">New →</span>
+            </button>
+          </div>
+
+          <!-- Line 6b: Resizable Glassy Widgets (Android & iOS) -->
+          <div class="py-3">
+            <button id="openWidgetStudioFromSettingsBtn" type="button" class="w-full flex items-center justify-between py-1 text-left font-bold text-slate-800 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 transition">
+              <span>📱 Home Screen Widgets</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-400 font-bold" id="settingsWidgetDimBadge">2×2 • 3×3 • 4×4 →</span>
             </button>
           </div>
 
@@ -1301,7 +1460,7 @@
 
       <!-- Footer inside Sidebar -->
       <div class="pt-4 border-t border-slate-200/70 dark:border-slate-800 text-center">
-        <p class="text-[10px] font-semibold text-slate-400">HydroPulse v4.1 • Smart Hydration & Cycle</p>
+        <p class="text-[10px] font-semibold text-slate-400">HydroPulse v4.2 • Smart Hydration & Cycle</p>
       </div>
     </aside>
   </div>
@@ -1382,13 +1541,19 @@
           </div>
         </div>
 
-        <!-- ONLY Settings Gear Icon in Top-Right Corner -->
-        <button id="openSettingsDrawerBtn" type="button" class="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center active:scale-95 transition shadow-sm" title="Open Settings" aria-label="Open Settings">
+        <!-- Quick Widget Studio & Settings Gear Icons in Top-Right Corner -->
+        <div class="flex items-center gap-1.5">
+          <button id="openWidgetStudioHeaderBtn" type="button" class="px-2.5 h-10 rounded-2xl bg-sky-500/10 dark:bg-sky-500/15 hover:bg-sky-500/20 border border-sky-500/30 text-sky-600 dark:text-sky-400 flex items-center gap-1 text-xs font-extrabold active:scale-95 transition shadow-sm" title="Open Glassy Water Widgets">
+            <span>📱</span>
+            <span>Widget</span>
+          </button>
+          <button id="openSettingsDrawerBtn" type="button" class="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center active:scale-95 transition shadow-sm" title="Open Settings" aria-label="Open Settings">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
           </svg>
         </button>
+        </div>
       </div>
     </header>
 
@@ -1430,6 +1595,35 @@
             <div class="text-sm font-extrabold text-slate-900 dark:text-white truncate"><span id="miniTempText">31</span>°C</div>
           </div>
         </button>
+      </div>
+
+      <!-- Optional Pinned Resizable Glassy Widget on Home Screen -->
+      <div id="pinnedHomeWidgetWrapper" class="hidden rounded-3xl p-4 bg-gradient-to-br from-sky-400/20 via-blue-500/10 to-emerald-400/20 dark:from-sky-900/30 dark:via-slate-900/70 dark:to-indigo-950/40 border border-sky-300/40 dark:border-sky-800/40 flex flex-col items-center justify-center relative overflow-hidden">
+        <div class="w-full flex items-center justify-between mb-2 px-1">
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-sky-700 dark:text-sky-300 flex items-center gap-1">
+            <span>📱</span>
+            <span id="pinnedHomeWidgetBadge">Pinned Glass Widget (2×2)</span>
+          </span>
+          <button id="customizePinnedWidgetBtn" type="button" class="text-[10px] font-bold text-sky-600 dark:text-sky-400 hover:underline">
+            Resize (2×2 / 3×3 / 4×4 / 3×2) →
+          </button>
+        </div>
+        <div id="pinnedHomeWidgetBox" class="glass-widget-surface relative overflow-hidden rounded-[26px] flex flex-col justify-between p-4 select-none gpu-smooth" style="width: 190px; height: 190px;">
+          <canvas id="pinnedHomeWidgetCanvas" class="absolute inset-0 w-full h-full pointer-events-none gpu-smooth"></canvas>
+          <div class="relative z-10 flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-sky-700 dark:text-sky-300">💧 HydroPulse</span>
+            <span class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-500/20 text-amber-700 dark:text-amber-300">🔥 <span id="pinnedWidgetStreak">0</span>d</span>
+          </div>
+          <div class="relative z-10 text-center my-auto">
+            <div id="pinnedWidgetPct" class="text-2xl font-extrabold text-slate-900 dark:text-white leading-none">0%</div>
+            <div class="text-xs font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">
+              <span id="pinnedWidgetCurMl">0</span> / <span id="pinnedWidgetTargetMl">3050</span> ml
+            </div>
+          </div>
+          <button id="pinnedWidgetSipBtn" type="button" class="relative z-10 w-full py-1.5 px-2.5 rounded-xl bg-sky-600/95 hover:bg-sky-500 active:scale-95 text-white font-extrabold text-[11px] shadow-md transition">
+            💧 +Sip <span id="pinnedWidgetSipAmt">110</span> ml
+          </button>
+        </div>
       </div>
 
       <!-- Smooth 60FPS Animated Liquid Tank Card -->
@@ -1981,12 +2175,19 @@
       dailyWaterHistoryMap: {},
       periodSeparateWaterMl: 0,
       periodSeparateWaterHistoryMap: {},
-      rememberedGoogleEmails: []
+      rememberedGoogleEmails: [],
+      widgetDimension: '2x2', // '2x2' | '3x3' | '4x4' | '3x2v'
+      pinWidgetOnHome: false
     };
 
     // Current app version & release changelog
-    const CURRENT_APP_VERSION = 'v4.1';
+    const CURRENT_APP_VERSION = 'v4.2';
     const WHATS_NEW_CHANGELOG = [
+      {
+        icon: '📱',
+        title: 'Glassy Resizable Widgets for Android & iOS (v4.2)',
+        desc: 'New translucent glassy widgets in 2×2, 3×3, 4×4, and Vertical 3×2 sizes with smooth 60FPS liquid wave animation, Light/Dark mode auto-sync, and 1-tap +Sip logging!'
+      },
       {
         icon: '⚡',
         title: 'Instant Cloud Login Feedback & Fast Sync (v4.1)',
@@ -2730,6 +2931,17 @@
       state.pausedIntervalRemainingSec = intervalMins * 60;
       syncScheduleWithServiceWorker();
       updateCloudModalUI();
+      updateWidgetStudioUI();
+      if (window.AndroidBridge && typeof window.AndroidBridge.updateNativeWidget === 'function') {
+        try {
+          window.AndroidBridge.updateNativeWidget(
+            state.currentIntakeMl,
+            metrics.totalDailyMl,
+            metrics.perIntervalMl,
+            state.streakMissedWarning ? 0 : state.streakDays
+          );
+        } catch (e) {}
+      }
       saveState();
     }
 
@@ -3687,7 +3899,148 @@
       wavePhase1 += 0.045 + waveBoostVelocity * 0.008;
       wavePhase2 -= 0.032 + waveBoostVelocity * 0.005;
 
+      renderWidgetWaveCanvas('interactiveWidgetWaveCanvas');
+      if (state.pinWidgetOnHome) {
+        renderWidgetWaveCanvas('pinnedHomeWidgetCanvas');
+      }
+
       requestAnimationFrame(animateLiquidWaves);
+    }
+
+    // Smooth 60FPS Liquid Wave Renderer for Glassy Widgets (Zero Glitches!)
+    const WIDGET_DIMENSIONS = {
+      '2x2': { width: 186, height: 186, label: '2×2 Compact Square', radius: '26px', pctClass: 'text-3xl' },
+      '3x3': { width: 248, height: 248, label: '3×3 Medium Square', radius: '30px', pctClass: 'text-4xl' },
+      '4x4': { width: 304, height: 296, label: '4×4 Large Dashboard', radius: '32px', pctClass: 'text-4xl' },
+      '3x2v': { width: 196, height: 288, label: 'Vertical 3 × Horizontal 2', radius: '30px', pctClass: 'text-4xl' }
+    };
+
+    function renderWidgetWaveCanvas(canvasId) {
+      const wCanvas = document.getElementById(canvasId);
+      if (!wCanvas) return;
+      const rect = wCanvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const targetW = Math.round(rect.width * dpr);
+      const targetH = Math.round(rect.height * dpr);
+      if (wCanvas.width !== targetW || wCanvas.height !== targetH) {
+        wCanvas.width = targetW;
+        wCanvas.height = targetH;
+      }
+
+      const wCtx = wCanvas.getContext('2d');
+      wCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      wCtx.clearRect(0, 0, rect.width, rect.height);
+
+      const baseY = rect.height * (1 - displayedFillRatio);
+      const amp1 = 5 + waveBoostVelocity * 0.45;
+      const amp2 = 3.5 + waveBoostVelocity * 0.35;
+
+      // Back translucent wave
+      wCtx.beginPath();
+      wCtx.moveTo(0, rect.height);
+      for (let x = 0; x <= rect.width; x += 6) {
+        const y = baseY + Math.sin((x * 0.025) + wavePhase2) * amp2;
+        wCtx.lineTo(x, y);
+      }
+      wCtx.lineTo(rect.width, rect.height);
+      wCtx.closePath();
+      wCtx.fillStyle = 'rgba(56, 189, 248, 0.28)';
+      wCtx.fill();
+
+      // Front glossy wave
+      wCtx.beginPath();
+      wCtx.moveTo(0, rect.height);
+      for (let x = 0; x <= rect.width; x += 5) {
+        const y = baseY + Math.sin((x * 0.03) + wavePhase1) * amp1;
+        wCtx.lineTo(x, y);
+      }
+      wCtx.lineTo(rect.width, rect.height);
+      wCtx.closePath();
+
+      const grad = wCtx.createLinearGradient(0, baseY, 0, rect.height);
+      grad.addColorStop(0, 'rgba(14, 165, 233, 0.46)');
+      grad.addColorStop(1, 'rgba(2, 132, 199, 0.68)');
+      wCtx.fillStyle = grad;
+      wCtx.fill();
+    }
+
+    function updateWidgetStudioUI() {
+      const metrics = calculateWaterMetrics();
+      const pct = Math.min(100, Math.round((state.currentIntakeMl / metrics.totalDailyMl) * 100));
+      const remMl = Math.max(0, metrics.totalDailyMl - state.currentIntakeMl);
+      const dimKey = WIDGET_DIMENSIONS[state.widgetDimension] ? state.widgetDimension : '2x2';
+      const dimCfg = WIDGET_DIMENSIONS[dimKey];
+
+      const box = document.getElementById('liveGlassyWidgetBox');
+      if (box) {
+        box.style.width = `${dimCfg.width}px`;
+        box.style.height = `${dimCfg.height}px`;
+        box.style.borderRadius = dimCfg.radius;
+      }
+
+      const descLbl = document.getElementById('widgetDimDescLabel');
+      if (descLbl) descLbl.textContent = dimCfg.label;
+
+      const sBadge = document.getElementById('settingsWidgetDimBadge');
+      if (sBadge) sBadge.textContent = `${dimKey === '3x2v' ? '3×2 Vert' : dimKey.replace('x', '×')} →`;
+
+      document.querySelectorAll('.widget-dim-btn').forEach((btn) => {
+        const k = btn.getAttribute('data-widget-dim');
+        if (k === dimKey) {
+          btn.className = 'widget-dim-btn py-2 px-1.5 rounded-xl text-xs font-extrabold bg-sky-600 text-white shadow-sm transition';
+        } else {
+          btn.className = 'widget-dim-btn py-2 px-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-sky-500 transition';
+        }
+      });
+
+      const pctEl = document.getElementById('widgetPercentBig');
+      if (pctEl) {
+        pctEl.className = `${dimCfg.pctClass} font-extrabold tracking-tight text-slate-900 dark:text-white drop-shadow-sm leading-none`;
+        pctEl.textContent = `${pct}%`;
+      }
+
+      document.getElementById('widgetCurrentMlText').textContent = state.currentIntakeMl;
+      document.getElementById('widgetTargetMlText').textContent = metrics.totalDailyMl;
+      document.getElementById('widgetStreakNum').textContent = state.streakMissedWarning ? 0 : state.streakDays;
+      document.getElementById('widgetRemainingSubtext').textContent =
+        remMl === 0 && state.currentIntakeMl > 0 ? 'Goal Complete! 🎉' : `${remMl.toLocaleString()} ml left today`;
+      document.getElementById('widgetAddSipBtnLabel').textContent =
+        dimKey === '2x2' ? `+Sip ${metrics.perIntervalMl}ml` : `+Add Sip (${metrics.perIntervalMl} ml)`;
+      document.getElementById('widgetNextTimerText').textContent = formatSecondsMMSS(getIntervalRemainingSeconds());
+      document.getElementById('widgetTempText').textContent = `${state.tempC}°C`;
+
+      const extStats = document.getElementById('widgetExtendedStatsRow');
+      const weatherChip = document.getElementById('widgetWeatherChip');
+      const quick4x4 = document.getElementById('widget4x4QuickRow');
+      if (extStats) extStats.classList.toggle('hidden', dimKey === '2x2');
+      if (weatherChip) weatherChip.classList.toggle('hidden', dimKey !== '4x4');
+      if (quick4x4) quick4x4.classList.toggle('hidden', dimKey !== '4x4');
+
+      // Update Pinned Home Screen Widget if enabled
+      const pinnedWrap = document.getElementById('pinnedHomeWidgetWrapper');
+      const pinnedBox = document.getElementById('pinnedHomeWidgetBox');
+      const pinBtn = document.getElementById('togglePinWidgetHomeBtn');
+      if (pinnedWrap && pinnedBox && pinBtn) {
+        pinnedWrap.classList.toggle('hidden', !state.pinWidgetOnHome);
+        pinnedBox.style.width = `${dimCfg.width}px`;
+        pinnedBox.style.height = `${dimCfg.height}px`;
+        document.getElementById('pinnedHomeWidgetBadge').textContent = `Pinned Glass Widget (${dimCfg.label})`;
+        document.getElementById('pinnedWidgetStreak').textContent = state.streakMissedWarning ? 0 : state.streakDays;
+        document.getElementById('pinnedWidgetPct').textContent = `${pct}%`;
+        document.getElementById('pinnedWidgetCurMl').textContent = state.currentIntakeMl;
+        document.getElementById('pinnedWidgetTargetMl').textContent = metrics.totalDailyMl;
+        document.getElementById('pinnedWidgetSipAmt').textContent = metrics.perIntervalMl;
+
+        if (state.pinWidgetOnHome) {
+          pinBtn.className = 'px-3 py-1.5 rounded-xl text-xs font-extrabold bg-emerald-600 text-white transition';
+          pinBtn.textContent = 'ON ✓';
+        } else {
+          pinBtn.className = 'px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 transition';
+          pinBtn.textContent = 'OFF';
+        }
+      }
     }
 
     // =========================================================================
@@ -4757,7 +5110,7 @@
       document.getElementById('closeWhatsNewBtn').addEventListener('click', closeWhatsNewModal);
       document.getElementById('gotItWhatsNewBtn').addEventListener('click', closeWhatsNewModal);
 
-      ['streakPopupModal', 'reminderPopupModal', 'weatherPopupModal', 'formulaModal', 'whatsNewModal', 'logPeriodPopupModal', 'iosInstallModal'].forEach((mId) => {
+      ['streakPopupModal', 'reminderPopupModal', 'weatherPopupModal', 'formulaModal', 'whatsNewModal', 'logPeriodPopupModal', 'iosInstallModal', 'widgetStudioModal'].forEach((mId) => {
         const mEl = document.getElementById(mId);
         if (mEl) {
           mEl.addEventListener('click', (e) => {
@@ -4806,6 +5159,67 @@
       document.getElementById('openWhatsNewFromSettingsBtn').addEventListener('click', () => {
         closeSettingsDrawer();
         setTimeout(openWhatsNewModal, 200);
+      });
+
+      // Widget Studio Event Listeners (Android & iOS)
+      function openWidgetStudioModal() {
+        updateWidgetStudioUI();
+        openPopupWithBounce('widgetStudioModal', 'widgetStudioCard');
+      }
+
+      document.getElementById('openWidgetStudioHeaderBtn').addEventListener('click', openWidgetStudioModal);
+      document.getElementById('openWidgetStudioFromSettingsBtn').addEventListener('click', () => {
+        closeSettingsDrawer();
+        setTimeout(openWidgetStudioModal, 180);
+      });
+      document.getElementById('customizePinnedWidgetBtn').addEventListener('click', openWidgetStudioModal);
+      document.getElementById('closeWidgetStudioBtn').addEventListener('click', () => {
+        closePopupWithBounce('widgetStudioModal', 'widgetStudioCard');
+      });
+
+      document.querySelectorAll('.widget-dim-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.widgetDimension = btn.getAttribute('data-widget-dim') || '2x2';
+          waveBoostVelocity = 8;
+          updateWidgetStudioUI();
+          saveState(true);
+        });
+      });
+
+      document.getElementById('widgetAddSipMainBtn').addEventListener('click', () => {
+        const metrics = calculateWaterMetrics();
+        addWaterIntake(metrics.perIntervalMl);
+      });
+
+      document.querySelectorAll('.widget-quick-ml-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const ml = Number(btn.getAttribute('data-widget-quick-ml')) || 200;
+          addWaterIntake(ml);
+        });
+      });
+
+      document.getElementById('pinnedWidgetSipBtn').addEventListener('click', () => {
+        const metrics = calculateWaterMetrics();
+        addWaterIntake(metrics.perIntervalMl);
+      });
+
+      document.getElementById('togglePinWidgetHomeBtn').addEventListener('click', () => {
+        state.pinWidgetOnHome = !state.pinWidgetOnHome;
+        updateWidgetStudioUI();
+        saveState(true);
+        showStatusToast(
+          state.pinWidgetOnHome ? '📌' : '✨',
+          state.pinWidgetOnHome ? 'Glassy Widget pinned to Home screen!' : 'Unpinned widget from Home screen.'
+        );
+      });
+
+      document.getElementById('copyIosWidgetScriptBtn').addEventListener('click', () => {
+        const metrics = calculateWaterMetrics();
+        const iosScript = `// HydroPulse iOS Home Screen Widget (Scriptable)\nconst w = new ListWidget();\nw.backgroundColor = Color.dynamic(new Color("#f0f9ff", 0.85), new Color("#0f172a", 0.85));\nconst t = w.addText("💧 HydroPulse");\nt.font = Font.boldSystemFont(12);\nt.textColor = new Color("#0284c7");\nw.addSpacer(6);\nconst m = w.addText("${state.currentIntakeMl} / ${metrics.totalDailyMl} ml");\nm.font = Font.heavySystemFont(20);\nw.url = "https://amiya-cmd.github.io/hydroPulse/";\nScript.setWidget(w);\nScript.complete();`;
+        try {
+          navigator.clipboard.writeText(iosScript);
+        } catch (e) {}
+        showStatusToast('🍎', 'Copied iOS Widget script to clipboard!');
       });
 
       document.getElementById('openIosGuideFromSettingsBtn').addEventListener('click', () => {
