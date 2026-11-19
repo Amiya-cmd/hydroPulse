@@ -353,6 +353,20 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void updateNativeWidget(int currentMl, int targetMl, int sipMl, int streakDays) {
+            try {
+                SharedPreferences prefs = context.getSharedPreferences(HydroPulseWidgetProvider.PREFS_WIDGET_STATE, Context.MODE_PRIVATE);
+                prefs.edit()
+                    .putInt("currentMl", currentMl)
+                    .putInt("targetMl", targetMl)
+                    .putInt("sipMl", sipMl)
+                    .putInt("streakDays", streakDays)
+                    .apply();
+                HydroPulseWidgetProvider.refreshAllWidgets(context);
+            } catch (Exception ignored) {}
+        }
+
+        @JavascriptInterface
         public String consumePendingNotificationDrinks() {
             SharedPreferences prefs = context.getSharedPreferences(PREFS_NOTIF_LOGS, MODE_PRIVATE);
             String json = prefs.getString("pending_json", "[]");

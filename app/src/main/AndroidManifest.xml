@@ -39,5 +39,19 @@
             android:name=".WaterAlarmReceiver"
             android:enabled="true"
             android:exported="false" />
+
+        <!-- Resizable Glassy Home-Screen AppWidget (2x2, 3x3, 4x4, 2x3 Vertical) -->
+        <receiver
+            android:name=".HydroPulseWidgetProvider"
+            android:exported="true"
+            android:label="HydroPulse Water Widget">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.hydropulse.tracker.ACTION_WIDGET_ADD_SIP" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/hydropulse_widget_info" />
+        </receiver>
     </application>
 </manifest>

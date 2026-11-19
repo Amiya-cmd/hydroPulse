@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="6dp">
+
+    <!-- Dynamic Glassy Card & Liquid Wave Meter Bitmap Canvas -->
+    <ImageView
+        android:id="@+id/widget_wave_canvas_img"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY" />
+
+    <!-- Interactive "+Sip" Button Overlay at Bottom of Widget -->
+    <TextView
+        android:id="@+id/widget_add_sip_btn"
+        android:layout_width="match_parent"
+        android:layout_height="38dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginLeft="14dp"
+        android:layout_marginRight="14dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/notif_drink_btn_bg"
+        android:gravity="center"
+        android:text="💧 +Add Sip (110 ml)"
+        android:textColor="#FFFFFF"
+        android:textSize="12.5sp"
+        android:textStyle="bold" />
+</RelativeLayout>
