@@ -1,53 +1,114 @@
-name: Build Android APK & Deploy iOS App
+name: Build HydroPulse Android APK & iOS Web App
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "hydropulse-build-and-pages"
+  cancel-in-progress: false
 
 jobs:
-  build-apk:
+  build-android-apk:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Auto-Detect App Version from app/build.gradle
+        id: version
+        run: |
+          VER=$(grep -E 'versionName' app/build.gradle | head -n 1 | sed -E 's/.*versionName[[:space:]]*=?[[:space:]]*["'\'']([^"'\'']+)["'\''].*/\1/')
+          if [ -z "$VER" ]; then
+            VER="4.2"
+          fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Detected HydroPulse version: v$VER"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
           distribution: 'temurin'
+          java-version: '17'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.4'
+          gradle-version: '8.7'
 
-      - name: Build Signed HydroPulse v4.1 APK
+      - name: Build Signed Release APK
         run: |
-          gradle assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk HydroPulse-v4.1.apk
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+            ./gradlew assembleRelease
+          else
+            gradle assembleRelease
+          fi
 
-      - name: Upload Compiled HydroPulse v4.1 APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: HydroPulse-v4.1-Android-APK
-          path: HydroPulse-v4.1.apk
+      - name: Prepare Versioned APK File
+        run: |
+          APK_SRC=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -z "$APK_SRC" ]; then
+            echo "Error: No release APK found!"
+            exit 1
+          fi
+          cp "$APK_SRC" "HydroPulse-v${{ steps.version.outputs.version }}.apk"
+          ls -lh "HydroPulse-v${{ steps.version.outputs.version }}.apk"
 
-      - name: Automatically Publish HydroPulse-v4.1.apk to GitHub Releases
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v4.1
-          name: HydroPulse v4.1 for Android & iOS
-          body: "📱 **Android Users:** Download **HydroPulse-v4.1.apk** below under Assets.\n🍎 **iPhone / iOS Users:** Open **https://amiya-cmd.github.io/hydroPulse/** in Safari -> tap **Share** -> **Add to Home Screen**!"
-          files: HydroPulse-v4.1.apk
-          prerelease: false
+          tag_name: "v${{ steps.version.outputs.version }}"
+          name: "HydroPulse v${{ steps.version.outputs.version }} for Android & iOS"
+          make_latest: true
+          body: |
+            📱 Android Users: Download **HydroPulse-v${{ steps.version.outputs.version }}.apk** below under Assets.
+            🍎 iPhone / iOS Users: Open https://amiya-cmd.github.io/hydroPulse/ in Safari -> tap Share -> Add to Home Screen!
+          files: "HydroPulse-v${{ steps.version.outputs.version }}.apk"
 
-      - name: Deploy iOS Progressive Web App to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+  deploy-ios-pages:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Prepare iOS PWA Site Folder
+        run: |
+          mkdir -p _site
+          if [ -f "app/src/main/assets/index.html" ]; then
+            cp app/src/main/assets/index.html _site/index.html
+          elif [ -f "index.html" ]; then
+            cp index.html _site/index.html
+          fi
+          for f in manifest.json sw.js apple-touch-icon.png; do
+            if [ -f "$f" ]; then
+              cp "$f" "_site/$f"
+            elif [ -f "app/src/main/assets/$f" ]; then
+              cp "app/src/main/assets/$f" "_site/$f"
+            fi
+          done
+          if [ ! -f "_site/apple-touch-icon.png" ] && [ -f "app/src/main/res/mipmap-hdpi/ic_launcher.png" ]; then
+            cp app/src/main/res/mipmap-hdpi/ic_launcher.png _site/apple-touch-icon.png
+          fi
+          ls -la _site
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./app/src/main/assets
+          path: '_site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
